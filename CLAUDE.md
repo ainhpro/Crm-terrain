@@ -1,0 +1,76 @@
+# CLAUDE.md — CRM commercial terrain
+
+Application modulaire, mobile-first et vocal-first, pour commerciaux terrain indépendants (1 à 3 personnes) en Belgique (FR/NL), Luxembourg, puis France.
+Promesse : « Tu sors de chez le client, tu parles une minute, et tout est à jour. »
+
+- Cahier des charges complet : [`docs/cahier-des-charges.md`](docs/cahier-des-charges.md). Le lire avant toute nouvelle fonctionnalité.
+- Prototype de référence et analyse de sa logique : [`docs/prototype/`](docs/prototype/).
+
+## Modules
+
+Tous les modules partagent le même fichier clients (organisations, clients, groupes, contacts). Un module n'accède jamais aux tables d'un autre module directement : il passe par les fonctions exposées dans `src/modules/<module>/`.
+
+| Module | Dossier | Statut |
+|---|---|---|
+| CRM terrain (socle) | `src/modules/crm` | **En cours — V1** |
+| Prospection | `src/modules/prospection` | Prévu (listes, séquences d'emails, RGPD) |
+| Faisabilité d'offres | `src/modules/offres` | Prévu (à spécifier : catalogue importé, offre PDF, prix calculés par le code) |
+| Route (tournées, notes de frais) | `src/modules/route` | Prévu (V2) |
+
+Ne rien construire des modules prévus sans demande explicite. Chaque module s'active par compte (`organizations.modules actifs`).
+
+**Hors périmètre définitif** : facturation, comptabilité, gestion de stock. L'outil s'arrête à l'offre.
+
+## Pile technique
+
+| Brique | Choix |
+|---|---|
+| Application | Next.js + TypeScript, PWA installable |
+| Hébergement | Vercel, région Europe |
+| Base, auth, fichiers | Supabase, région Francfort (Postgres + RLS + Storage) |
+| IA | API Claude (structuration des rapports, lecture des imports) |
+| Transcription | Service vocal FR/NL/IT, hébergé en Europe de préférence (à choisir) |
+| Cartes | Google Maps Platform |
+| Agendas (V2) | Google Calendar API, Microsoft Graph |
+| Emails | Brevo |
+| Paiement | Stripe Billing (carte, Bancontact, SEPA) |
+| Traductions | Fichiers de langue FR / NL (IT ajouté sans toucher au code) |
+| Tests | Vitest |
+
+## Règles non négociables
+
+1. **Isolation par compte** : toute table porte `organization_id`, protégée par Row Level Security Supabase. Chaque nouvelle table reçoit sa politique RLS et un test d'isolation.
+2. **Le serveur est le seul intermédiaire** : le téléphone ne contacte jamais directement l'IA ni les fournisseurs. Clés d'API uniquement côté serveur (jamais de secret en `NEXT_PUBLIC_`).
+3. **Prix et totaux calculés par le code, jamais par l'IA.**
+4. **L'IA ne modifie jamais rien sans validation** de l'utilisateur (rapport vocal, import, catalogue : on propose, l'utilisateur valide).
+5. **Statut de pipeline jamais stocké** : recalculé à partir des actions par `src/modules/crm/pipeline/engine.ts`. Une étape avancée terminée valide les étapes précédentes.
+6. **Étapes identifiées par leur `code`**, jamais par le texte du libellé.
+7. **Aucun texte utilisateur injecté tel quel dans la page** (pas de `dangerouslySetInnerHTML` sur des données utilisateur — faille du prototype).
+8. **FR et NL dès la V1** : aucun texte d'interface en dur, tout passe par les fichiers de langue.
+9. **Dates** : jours au format ISO `AAAA-MM-JJ` ; « aujourd'hui » est passé en paramètre aux fonctions métier (testable, pas de décalage de fuseau).
+10. **RGPD** : données en UE autant que possible ; export complet et suppression de compte possibles ; audios supprimables après transcription.
+
+## Méthode de travail
+
+- Une fonctionnalité = une branche = une demande de fusion relue avant production.
+- Avant chaque push : `npm run typecheck` et `npm test` doivent passer.
+- Tests obligatoires sur les points critiques : isolation des comptes, calcul du pipeline, calcul des prix.
+- Trois environnements : développement, test, production.
+- Interface pensée pour le téléphone, utilisable d'une main.
+
+## Feuille de route V1 (module CRM)
+
+1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel.
+2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée.
+3. Pipelines configurables et calcul des étapes déduites ; pipelines INDA comme premier modèle. *(moteur de calcul et modèle INDA faits, reste la base et les écrans)*
+4. Import Excel avec reconnaissance des colonnes par l'IA ; import des clients INDA (+ reprise de la sauvegarde du prototype, convertisseur fait).
+5. Écrans Aujourd'hui, Actions, Fiche client, Résumé, Agenda.
+6. Rapport vocal : enregistrement, transcription, structuration, validation.
+7. Tâches, relances automatiques (A : 6 semaines, B : 2 mois, C : 3 mois, réglables), email du matin.
+8. Traduction néerlandaise complète.
+9. Fabrice utilise la V1 seul pendant 3 à 4 semaines.
+10. Audit sécurité, puis ouverture à 3 testeurs payants.
+
+## Questions ouvertes
+
+Nom du produit et domaine · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».

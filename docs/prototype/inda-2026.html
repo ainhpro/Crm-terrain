@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>INDA 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+:root {
+  --blue:#002D58; --blue2:#0050A0; --gold:#C5A059;
+  --red:#DC2626; --green:#16A34A; --orange:#EA580C;
+  --bg:#EEF2F7; --white:#fff; --border:#E2E8F0;
+  --text:#0F172A; --muted:#64748B; --muted2:#94A3B8;
+  /* SAMO palette */
+  --samo-bg:#F8F8F8; --samo-text:#1A1A1A; --samo-border:#D0D0D0;
+  --samo-accent:#002D58; --samo-muted:#888;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);padding-bottom:90px}
+
+/* ── HEADER ── */
+.hdr{background:#0A0A0A;padding:16px 18px 12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.hdr-title{font-size:19px;font-weight:700;color:#fff;letter-spacing:-.5px}
+.hdr-title span{opacity:.4;font-weight:300}
+.hdr-btns{display:flex;gap:7px}
+.hbtn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;padding:5px 11px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.07em;cursor:pointer;font-family:'DM Sans',sans-serif}
+.hbtn:active{background:rgba(255,255,255,.22)}
+.hbtn-gold{background:rgba(197,160,89,.2);border-color:rgba(197,160,89,.45)}
+
+/* ── TABS ── */
+.tabs{background:#0A0A0A;overflow-x:auto;white-space:nowrap;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,.08)}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{display:inline-block;padding:9px 15px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.42);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;font-family:'DM Sans',sans-serif;transition:all .15s}
+.tabs button.active{color:#fff;border-bottom-color:var(--gold)}
+
+/* ── LAYOUT ── */
+#content{padding:14px}
+.sec-lbl{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 0 9px 2px}
+
+/* ── ALERT ── */
+.alert-box{border-radius:12px;padding:11px 13px;margin-bottom:9px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600}
+.alert-red{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B}
+.alert-orange{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+
+/* ── SUMMARY CARD ── */
+.sum-card{background:#fff;border-radius:14px;border:1px solid var(--border);padding:15px;margin-bottom:9px}
+.sum-card-samo{background:var(--samo-bg);border-color:var(--samo-border)}
+.sum-badge{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.sb-facq{background:#DBEAFE;color:#1D4ED8}
+.sb-stg{background:#FEE2E2;color:var(--red)}
+.sb-samo{background:#1A1A1A;color:#fff}
+.prog-row{margin-bottom:8px}
+.prog-meta{display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:3px}
+.prog-track{background:#EEF2F7;height:7px;border-radius:7px;overflow:hidden}
+.prog-track-samo{background:#E5E5E5}
+.prog-fill{height:100%;border-radius:7px;transition:width .5s ease}
+
+/* ── SITE CARD (pilotage) ── */
+.site-card{background:#fff;border-radius:14px;border:1px solid var(--border);margin-bottom:9px;overflow:hidden}
+.site-card-samo{background:var(--samo-bg);border-color:var(--samo-border)}
+.site-card-hdr{padding:13px 14px 10px;display:flex;justify-content:space-between;align-items:center}
+.site-name{font-weight:700;font-size:15px}
+.site-name-samo{color:var(--samo-text)}
+.site-badge{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;margin-left:6px}
+.sb-final{background:#DCFCE7;color:#15803D}
+.sb-encours{background:#DBEAFE;color:#1D4ED8}
+.sb-late{background:#FEE2E2;color:var(--red)}
+.sb-start{background:#F1F5F9;color:var(--muted)}
+.sb-final-samo{background:#1A1A1A;color:#fff}
+.sb-encours-samo{background:#E5E5E5;color:#1A1A1A}
+.site-det-btn{font-size:10px;font-weight:700;color:var(--muted);background:#F1F5F9;border:none;border-radius:20px;padding:5px 11px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.site-det-btn-samo{color:var(--samo-muted);background:#E8E8E8}
+.site-det-btn:active{background:#E2E8F0}
+.pipe-lbl{padding:0 14px 3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted2)}
+.pipe-lbl-samo{color:#AAAAAA}
+
+/* ── PIPELINE ── */
+.pipeline{padding:0 14px 13px;display:flex;align-items:stretch}
+.step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+.step:not(:last-child)::after{content:'';position:absolute;top:11px;left:50%;width:100%;height:2px;background:#E2E8F0;z-index:0}
+.step:not(:last-child).s-done::after{background:var(--green)}
+.step:not(:last-child).s-impl::after{background:#86EFAC}
+.step:not(:last-child).s-active::after{background:var(--gold)}
+/* SAMO connectors */
+.step:not(:last-child).s-done-samo::after{background:#1A1A1A}
+.step:not(:last-child).s-impl-samo::after{background:#888}
+.step-dot{width:23px;height:23px;border-radius:50%;border:2px solid #E2E8F0;background:#F8FAFC;display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1;position:relative;transition:all .15s}
+.step-dot.s-done{background:var(--green);border-color:var(--green);color:#fff}
+.step-dot.s-impl{background:#86EFAC;border-color:#4ADE80;color:#14532D}
+.step-dot.s-active{background:var(--gold);border-color:var(--gold);color:#fff;box-shadow:0 0 0 3px rgba(197,160,89,.25)}
+.step-dot.s-rdv{background:#DBEAFE;border-color:#3B82F6;color:#1D4ED8}
+.step-dot.s-next{border-color:var(--muted2);background:#fff;color:var(--muted2)}
+/* SAMO dots */
+.step-dot.s-done-samo{background:#1A1A1A;border-color:#1A1A1A;color:#fff}
+.step-dot.s-impl-samo{background:#888;border-color:#888;color:#fff}
+.step-dot.s-active-samo{background:var(--samo-accent);border-color:var(--samo-accent);color:#fff}
+.step-dot.s-next-samo{border-color:#BBBBBB;background:#F0F0F0;color:#888}
+.step-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted2);margin-top:4px;text-align:center;line-height:1.2;max-width:52px}
+.step-lbl.s-done,.step-lbl.s-impl{color:var(--green)}
+.step-lbl.s-active{color:var(--gold);font-weight:800}
+.step-lbl.s-done-samo,.step-lbl.s-impl-samo{color:#555}
+.step-lbl.s-active-samo{color:var(--samo-accent);font-weight:800}
+
+/* ── PILLS ── */
+.pill{display:inline-block;padding:3px 7px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.p-done{background:#DCFCE7;color:#15803D}
+.p-rdv{background:#DBEAFE;color:#1D4ED8}
+.p-todo{background:#F1F5F9;color:#475569}
+.p-late{background:#FEE2E2;color:#B91C1C}
+.p-wait{background:#FEF3C7;color:#B45309}
+.p-bloc{background:#F5F3FF;color:#6D28D9}
+.p-impl{background:#DCFCE7;color:#15803D}
+
+/* ── ACTION CARDS ── */
+.act-card{display:flex;gap:11px;background:#fff;border-radius:12px;padding:11px 13px;margin-bottom:8px;border:1px solid var(--border);align-items:center;cursor:pointer}
+.act-card:active{background:#F8FAFC}
+.act-dbox{min-width:42px;background:#F1F5F9;border-radius:8px;text-align:center;padding:5px 3px;flex-shrink:0}
+.act-dbox.late{background:#FEE2E2}
+.act-dday{font-size:18px;font-weight:700;line-height:1}
+.act-dbox.late .act-dday{color:var(--red)}
+.act-dmon{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+.act-info{flex:1;min-width:0}
+.act-title{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-sub{font-size:10px;color:var(--muted);margin-top:2px;font-weight:500}
+
+/* ── DETAIL VIEW ── */
+.back-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.back-btn{width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--blue);font-size:13px;flex-shrink:0}
+.back-title{font-weight:700;font-size:16px}
+.back-sub{font-size:11px;color:var(--muted)}
+.step-detail-card{background:#fff;border-radius:13px;border:1px solid var(--border);padding:14px;margin-bottom:8px}
+.sdc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.sdc-type{font-size:13px;font-weight:700}
+.sdc-date{font-size:11px;color:var(--muted);margin-top:4px}
+.sdc-note{font-size:12px;color:#475569;background:#F8FAFC;border-radius:8px;padding:9px;margin-top:8px;line-height:1.5}
+.sdc-btns{display:flex;justify-content:flex-end;gap:14px;margin-top:10px;padding-top:8px;border-top:1px solid #F1F5F9}
+.btn-sdc-done{font-size:11px;font-weight:700;color:var(--green);background:#DCFCE7;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-sdc-edit{font-size:11px;font-weight:700;color:var(--blue2);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-sdc-del{font-size:11px;font-weight:700;color:var(--red);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+.impl-card{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:11px 13px;margin-bottom:8px}
+.impl-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#15803D;margin-bottom:6px}
+.impl-steps{font-size:12px;color:#166534;line-height:1.8}
+
+/* ── ADD STEP BTN ── */
+.btn-add-step{width:100%;border:2px dashed var(--border);background:none;border-radius:11px;padding:12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px}
+.btn-add-step:active{background:#F8FAFC}
+
+/* ── WARN BOX ── */
+.warn-box{background:#FFFBEB;border:1px solid #FDE68A;border-radius:11px;padding:11px 13px;margin-bottom:9px}
+.warn-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400E;margin-bottom:5px}
+.warn-list{font-size:12px;color:#78350F;line-height:1.7}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:22px;right:18px;z-index:60;width:54px;height:54px;border-radius:50%;background:var(--blue);color:#fff;font-size:21px;border:none;cursor:pointer;box-shadow:0 8px 22px rgba(0,45,88,.38);display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.fab:active{transform:scale(.88)}
+
+/* ── MODAL ── */
+.modal-ov{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.52);backdrop-filter:blur(4px);display:flex;align-items:flex-end}
+.modal-box{background:#fff;width:100%;border-radius:22px 22px 0 0;padding:22px 18px 34px;max-height:92vh;overflow-y:auto}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-ttl{font-size:17px;font-weight:700}
+.modal-x{font-size:28px;color:var(--muted2);cursor:pointer;line-height:1;padding:0 4px}
+.flbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:block;margin-bottom:5px}
+.fctl{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;font-size:14px;font-family:'DM Sans',sans-serif;background:#FAFAFA;color:var(--text);outline:none;-webkit-appearance:none}
+.fctl:focus{border-color:var(--blue);background:#fff}
+.frow{margin-bottom:13px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:13px}
+.btn-save{width:100%;background:var(--blue);color:#fff;border:none;border-radius:11px;padding:15px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px}
+.btn-save:active{opacity:.82}
+
+/* ── EXPORT ── */
+.exp-ov{position:fixed;inset:0;z-index:80;background:#0F172A;display:flex;flex-direction:column;padding:14px}
+.exp-hdr{display:flex;justify-content:space-between;align-items:center;color:#fff;margin-bottom:11px}
+.exp-wrap{flex:1;overflow:auto;background:#fff;border-radius:11px}
+.exp-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.exp-tbl th{background:#F1F5F9;color:#475569;font-weight:700;padding:9px 7px;border:1px solid #E2E8F0;text-align:left}
+.exp-tbl td{padding:8px 7px;border:1px solid #E2E8F0;vertical-align:top}
+.btn-copy{background:#fff;color:var(--blue);border:none;border-radius:11px;padding:15px;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.08em;width:100%;margin-top:11px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.exp-bar{padding:0 14px 11px}
+.btn-exp{width:100%;background:#16A34A;color:#fff;border:none;border-radius:11px;padding:13px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'DM Sans',sans-serif}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:50px 20px;color:var(--muted2)}
+.empty i{font-size:32px;margin-bottom:10px;display:block;opacity:.3}
+.empty p{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+
+/* ── GLOBAL STATUS STRIP ── */
+.status-strip{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #F1F5F9}
+.ss-item{flex:1;min-width:0;text-align:center;background:#F8FAFC;border-radius:8px;padding:7px 4px}
+.ss-n{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;line-height:1}
+.ss-l{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:2px}
+.ss-n-green{color:var(--green)}
+.ss-n-blue{color:var(--blue2)}
+.ss-n-orange{color:var(--orange)}
+.ss-n-red{color:var(--red)}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-title">INDA <span>2026</span></div>
+  <div class="hdr-btns">
+    <button class="hbtn hbtn-gold" onclick="exportBackup()"><i class="fas fa-shield-alt"></i> BACKUP</button>
+    <button class="hbtn" onclick="render()">SYNC</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button id="btn-resume"  onclick="switchTab('resume')">Résumé</button>
+  <button id="btn-actions" onclick="switchTab('actions')">⚡ Actions</button>
+  <button id="btn-facq"    onclick="switchTab('facq')">FACQ</button>
+  <button id="btn-stg"     onclick="switchTab('stg')">STG</button>
+  <button id="btn-samo"    onclick="switchTab('samo')">SAMO</button>
+  <button id="btn-agenda"  onclick="switchTab('agenda')">Agenda</button>
+</nav>
+
+<div id="exp-bar-wrap" style="display:none" class="exp-bar">
+  <div style="height:13px"></div>
+  <button class="btn-exp" onclick="showExport()">
+    <i class="fas fa-file-excel"></i> <span id="exp-bar-lbl">Tableau</span>
+  </button>
+</div>
+
+<div id="content"></div>
+<button class="fab" onclick="openModal()"><i class="fas fa-plus"></i></button>
+
+<!-- MODAL -->
+<div id="modal" style="display:none" class="modal-ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span class="modal-ttl" id="modal-ttl">Nouvelle action</span>
+      <span class="modal-x" onclick="closeModal()">&times;</span>
+    </div>
+    <input type="hidden" id="eid">
+    <div class="frow">
+      <label class="flbl">Client / Showroom</label>
+      <select id="fshowroom" class="fctl" onchange="updateTypeOptions()"></select>
+    </div>
+    <div class="frow">
+      <label class="flbl">Étape / Action</label>
+      <select id="ftype" class="fctl"></select>
+    </div>
+    <div class="fgrid">
+      <div>
+        <label class="flbl">Statut</label>
+        <select id="fstatut" class="fctl">
+          <option value="À faire">À faire</option>
+          <option value="RDV à fixer">RDV à fixer</option>
+          <option value="RDV fixé">RDV fixé</option>
+          <option value="En cours">En cours</option>
+          <option value="En attente">En attente</option>
+          <option value="Relance">Relance</option>
+          <option value="Terminé">Terminé ✓</option>
+          <option value="Bloqué">Bloqué</option>
+        </select>
+      </div>
+      <div>
+        <label class="flbl">Date</label>
+        <input id="fdate" type="date" class="fctl">
+      </div>
+    </div>
+    <div class="frow">
+      <label class="flbl">Notes</label>
+      <textarea id="fnote" class="fctl" rows="3" placeholder="Commentaires..."></textarea>
+    </div>
+    <button class="btn-save" onclick="saveEntry()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- EXPORT OVERLAY -->
+<div id="exp-ov" style="display:none" class="exp-ov">
+  <div class="exp-hdr">
+    <span id="exp-title" style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.1em"></span>
+    <span style="font-size:30px;cursor:pointer" onclick="closeExport()">&times;</span>
+  </div>
+  <div class="exp-wrap"><div id="exp-tbl-cont"></div></div>
+  <button class="btn-copy" onclick="copyForExcel()">COPIER POUR EXCEL</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  DONNÉES STATIQUES
+// ══════════════════════════════════════════════════════════════
+const SHOWROOMS = {
+  FACQ: ["Merelbeke","Zaventem","Diest","Wilrijk","Geel","Brugge","Oostende","Hasselt","Roeselare","Kuurne"],
+  STG:  ["Hasselt","Bissegem","Herentals","Brasschaat","Brugge","Gentbrugge","Izegem","Oudenaarde","Turnhout","Veurne","Wilrijk","Zandhoven","Zele","Ninove"],
+  SAMO: ["Dupont Courtrai","Dupont Roulers","Dupont Ypres","Dupont Ruiselede","Badkamer Vermeersch","Willems Diels","Demeyer NV"]
+};
+
+// Types visibles dans le select modal (par client) — noms courts et lisibles
+const ALL_TYPES = {
+  FACQ: [
+    'Offre Showroom envoyée',
+    'Commande passée',
+    'Placement / Installation',
+    'Formation Meubles',
+    'Formation Parois',
+    'RDV Mise à jour showroom',
+    'Mise à jour Showroom',
+    'Livraison Tarifs',
+    'Suivi / Note',
+  ],
+  STG: [
+    'RDV Responsable showroom',
+    'Proposition showroom',
+    'Commande passée',
+    'Placement / Installation',
+    'Formation Meubles',
+    'Suivi / Note',
+  ],
+  SAMO: [
+    'Formation nouveautés produits',
+    'Livraison Tarifs SAMO',
+    'Suivi / Note',
+  ]
+};
+
+// Définition des pipelines
+// Chaque matcher reconnaît TOUS les formats historiques possibles
+const PIPELINES = {
+  FACQ_MAJ: [
+    { id:'rdv_maj',   short:'RDV',
+      match: e=>e.client==='FACQ'&&(
+        e.type.includes('RDV Mise à jour')||
+        e.type.includes('MAJ — RDV')||
+        e.type.includes('MAU — RDV')||
+        e.type.includes('Mise à jour Showroom')
+      )},
+    { id:'offre_maj', short:'OFFRE',
+      match: e=>e.client==='FACQ'&&(
+        e.type.includes('Offre Showroom')||
+        e.type.includes('MAJ — Offre')||
+        e.type.includes('MAU — Offre')||
+        e.type==='Offre Showroom envoyée'
+      )},
+    { id:'commande',  short:'CMD',
+      match: e=>e.client==='FACQ'&&(
+        e.type.includes('Commande')||
+        e.type.includes('MAJ — Commande')||
+        e.type.includes('MAU — Commande')
+      )},
+    { id:'placement', short:'PLACE',
+      match: e=>e.client==='FACQ'&&(
+        e.type.includes('Placement')||
+        e.type.includes('MAJ — Placement')||
+        e.type.includes('MAU — Placement')
+      )},
+  ],
+  FACQ_TAR: [
+    { id:'form_m', short:'FORM.M',
+      match: e=>e.client==='FACQ'&&e.type.includes('Formation Meubles')},
+    { id:'form_p', short:'FORM.P',
+      match: e=>e.client==='FACQ'&&e.type.includes('Formation Parois')},
+  ],
+  STG_PLACE: [
+    { id:'rdv',      short:'RDV',
+      match: e=>e.client==='STG'&&(
+        e.type.includes('RDV Responsable')||
+        e.type.includes('PLACEMENT — RDV')||
+        e.type.includes('RDV showroom')
+      )},
+    { id:'prop',     short:'PROP',
+      match: e=>e.client==='STG'&&(
+        e.type.includes('Proposition')||
+        e.type.includes('PLACEMENT — Proposition')||
+        e.type.includes('Étude Projet')||
+        e.type.includes('Offre Showroom')||
+        e.type.includes('Offre showroom')
+      )},
+    { id:'commande', short:'CMD',
+      match: e=>e.client==='STG'&&(
+        e.type.includes('Commande')||
+        e.type.includes('PLACEMENT — Commande')
+      )},
+    { id:'placement',short:'PLACE',
+      match: e=>e.client==='STG'&&(
+        e.type.includes('Placement')||
+        e.type.includes('PLACEMENT — Placement')
+      )},
+  ],
+  STG_FORM: [
+    { id:'formation', short:'FORM',
+      match: e=>e.client==='STG'&&(
+        e.type.includes('Formation Meubles')||
+        e.type.includes('FORMATION — Formation')||
+        e.type.includes('Formation Parois')
+      )},
+  ],
+  SAMO: [
+    { id:'tarif',     short:'TARIF', match: e=>false }, // toujours implicite
+    { id:'formation', short:'FORM',
+      match: e=>e.client==='SAMO'&&e.type.includes('Formation')},
+  ]
+};
+
+// ══════════════════════════════════════════════════════════════
+//  DB — migration propre
+// ══════════════════════════════════════════════════════════════
+let db = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem('inda_master_db') || '{"entries":[]}');
+    raw.entries = (raw.entries || []).filter(e => e.client !== 'CUIS');
+    return raw;
+  } catch(e) { return {entries:[]}; }
+})();
+function saveDB() { localStorage.setItem('inda_master_db', JSON.stringify(db)); }
+saveDB();
+
+let currentTab = 'resume';
+let filterShowroom = null;
+
+// ══════════════════════════════════════════════════════════════
+//  LOGIQUE MÉTIER — calcul implicite des étapes
+//  Règle : si une étape avancée est Terminée, toutes les étapes
+//          antérieures du même cycle sont considérées faites.
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Retourne pour chaque step d'un pipeline son statut effectif :
+ * 'done' | 'impl' | 'rdv' | 'active' | 'none'
+ * 'impl' = implicitement terminé (déduit d'une étape plus avancée)
+ */
+function computePipelineStatus(entries, pipeKey) {
+  const pipe = PIPELINES[pipeKey];
+
+  // Statut brut de chaque étape (selon les entrées enregistrées)
+  const raw = pipe.map(step => {
+    const match = entries.find(e => step.match(e));
+    if (!match) return 'none';
+    if (match.statut === 'Terminé') return 'done';
+    if (match.statut === 'RDV fixé') return 'rdv';
+    if (['En cours','À faire','Relance','En attente'].includes(match.statut)) return 'active';
+    return 'none';
+  });
+
+  // Propagation vers l'arrière : si l'étape N est 'done', toutes les < N sont au moins 'impl'
+  const result = [...raw];
+  let lastDoneIdx = -1;
+  raw.forEach((s, i) => { if (s === 'done') lastDoneIdx = i; });
+  for (let i = 0; i < lastDoneIdx; i++) {
+    if (result[i] === 'none') result[i] = 'impl';
+  }
+
+  // Cas SAMO spécial : tarif est toujours considéré livré (décision métier)
+  if (pipeKey === 'SAMO') {
+    if (result[0] === 'none') result[0] = 'impl';
+  }
+
+  return result;
+}
+
+/**
+ * Statut global calculé d'un showroom pour un pipeline donné.
+ * Retourne: 'final' | 'encours' | 'late' | 'start'
+ */
+function globalStatus(entries, pipeKey) {
+  const statuses = computePipelineStatus(entries, pipeKey);
+  const pipe = PIPELINES[pipeKey];
+  const lastIdx = pipe.length - 1;
+
+  // Finalisé = dernière étape done ou impl
+  if (statuses[lastIdx] === 'done' || statuses[lastIdx] === 'impl') return 'final';
+
+  // En retard ?
+  const tod = today0();
+  const hasLate = entries.some(e => e.date && e.statut !== 'Terminé' && new Date(e.date) < tod);
+  if (hasLate) return 'late';
+
+  // Au moins une étape commencée
+  if (statuses.some(s => s !== 'none')) return 'encours';
+
+  return 'start';
+}
+
+/**
+ * Statut global combiné pour un site (tous pipelines confondus)
+ * Retourne: 'final' | 'encours' | 'late' | 'start'
+ */
+function siteGlobalStatus(client, nom) {
+  const entries = db.entries.filter(e => e.client === client && e.showroom === nom);
+
+  if (client === 'FACQ') {
+    // 2 pistes INDÉPENDANTES — finalisé = les deux terminées
+    const maj = globalStatus(entries, 'FACQ_MAJ');
+    const tar = globalStatus(entries, 'FACQ_TAR');
+    if (maj === 'final' && tar === 'final') return 'final';
+    if (maj === 'late'  || tar === 'late')  return 'late';
+    if (maj === 'start' && tar === 'start') return 'start';
+    return 'encours';
+  }
+  if (client === 'STG') {
+    // 2 pistes INDÉPENDANTES — finalisé = placement ET formation terminés
+    const place = globalStatus(entries, 'STG_PLACE');
+    const form  = globalStatus(entries, 'STG_FORM');
+    if (place === 'final' && form === 'final') return 'final';
+    if (place === 'late'  || form === 'late')  return 'late';
+    if (place === 'start' && form === 'start') return 'start';
+    return 'encours';
+  }
+  if (client === 'SAMO') return globalStatus(entries, 'SAMO');
+  return 'start';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════
+function today0() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+
+function isLateEntry(e) {
+  if (!e.date || e.statut === 'Terminé') return false;
+  return new Date(e.date) < today0();
+}
+
+function pillClass(s) {
+  return ({
+    'Terminé':'pill p-done','RDV fixé':'pill p-rdv','À faire':'pill p-todo',
+    'RDV à fixer':'pill p-todo','En cours':'pill p-todo','En attente':'pill p-wait',
+    'Relance':'pill p-late','Bloqué':'pill p-bloc','Implicite':'pill p-impl'
+  })[s] || 'pill p-todo';
+}
+
+function exportBackup() {
+  try {
+    const json = JSON.stringify(db);
+
+    const area = document.createElement('textarea');
+    area.value = json;
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    area.setSelectionRange(0, area.value.length);
+
+    const copied = document.execCommand('copy');
+    document.body.removeChild(area);
+
+    alert(
+      copied
+        ? 'Sauvegarde copiée ! Ouvre Notes et colle-la immédiatement.'
+        : 'Copie impossible. Ne ferme pas Koder et contacte-moi.'
+    );
+  } catch (error) {
+    alert('Erreur de sauvegarde : ' + error.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════════════════════
+function switchTab(id) {
+  currentTab = id; filterShowroom = null;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  const b = document.getElementById('btn-' + id); if (b) b.classList.add('active');
+  const showExp = (id === 'facq' || id === 'stg');
+  document.getElementById('exp-bar-wrap').style.display = showExp ? 'block' : 'none';
+  if (showExp) document.getElementById('exp-bar-lbl').textContent = 'Tableau ' + id.toUpperCase();
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function render() {
+  const c = document.getElementById('content'); c.innerHTML = '';
+  if (currentTab === 'resume')  { renderResume(c);  return; }
+  if (currentTab === 'actions') { renderActions(c); return; }
+  if (currentTab === 'agenda')  { renderAgenda(c);  return; }
+  if (filterShowroom)           { renderDetails(c); return; }
+  renderPilotage(c);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RÉSUMÉ
+// ══════════════════════════════════════════════════════════════
+function renderResume(c) {
+  const tod = today0();
+  const lateN = db.entries.filter(isLateEntry).length;
+  const todN  = db.entries.filter(e => {
+    if (!e.date || e.statut === 'Terminé') return false;
+    const d = new Date(e.date); d.setHours(0,0,0,0);
+    return d.getTime() === tod.getTime();
+  }).length;
+
+  let html = '';
+  if (lateN > 0) html += `<div class="alert-box alert-red"><i class="fas fa-exclamation-circle"></i>${lateN} action${lateN>1?'s':''} en retard</div>`;
+  if (todN  > 0) html += `<div class="alert-box alert-orange"><i class="fas fa-clock"></i>${todN} action${todN>1?'s':''} aujourd'hui</div>`;
+
+  // Helper : compte les sites où l'étape [idx] du pipeline [pKey] est done ou impl
+  const countStep = (client, pKey, idx) =>
+    SHOWROOMS[client].filter(n => {
+      const sts = computePipelineStatus(db.entries.filter(e=>e.client===client&&e.showroom===n), pKey);
+      return sts[idx]==='done' || sts[idx]==='impl';
+    }).length;
+
+  // Helper : compte les sites par statut global
+  const countByStatus = (client) => {
+    let fin=0, enc=0, lat=0, sta=0;
+    SHOWROOMS[client].forEach(n => {
+      const s = siteGlobalStatus(client, n);
+      if(s==='final') fin++; else if(s==='late') lat++; else if(s==='encours') enc++; else sta++;
+    });
+    return {fin, enc, lat, sta};
+  };
+
+  // ── FACQ
+  const fS = countByStatus('FACQ');
+  const T  = SHOWROOMS.FACQ.length;
+  // FACQ_MAJ : idx 0=RDV, 1=Offre, 2=Cmd, 3=Placement
+  // FACQ_TAR : idx 0=Form.M, 1=Form.P
+  const facqRdvDone    = countStep('FACQ','FACQ_MAJ',0);
+  const facqOffreDone  = countStep('FACQ','FACQ_MAJ',1);
+  const facqPlaceDone  = countStep('FACQ','FACQ_MAJ',3);
+  const facqFmDone     = countStep('FACQ','FACQ_TAR',0);
+  const facqFpDone     = countStep('FACQ','FACQ_TAR',1);
+
+  html += `<div class="sec-lbl">FACQ — ${T} showrooms</div>
+  <div class="sum-card">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px"><span class="sum-badge sb-facq">FACQ</span></div>
+    <div class="prog-row"><div class="prog-meta"><span>MAJ — Offres envoyées</span><span>${facqOffreDone}/${T}</span></div><div class="prog-track"><div class="prog-fill" style="width:${(facqOffreDone/T)*100}%;background:var(--blue2)"></div></div></div>
+    <div class="prog-row"><div class="prog-meta"><span>MAJ — Placements</span><span>${facqPlaceDone}/${T}</span></div><div class="prog-track"><div class="prog-fill" style="width:${(facqPlaceDone/T)*100}%;background:var(--blue)"></div></div></div>
+    <div class="prog-row"><div class="prog-meta"><span>Formation Meubles</span><span>${facqFmDone}/${T}</span></div><div class="prog-track"><div class="prog-fill" style="width:${(facqFmDone/T)*100}%;background:var(--blue)"></div></div></div>
+    <div class="prog-row"><div class="prog-meta"><span>Formation Parois</span><span>${facqFpDone}/${T}</span></div><div class="prog-track"><div class="prog-fill" style="width:${(facqFpDone/T)*100}%;background:var(--blue)"></div></div></div>
+    <div class="status-strip">
+      <div class="ss-item"><div class="ss-n ss-n-green">${fS.fin}</div><div class="ss-l">Finalisés</div></div>
+      <div class="ss-item"><div class="ss-n ss-n-blue">${fS.enc}</div><div class="ss-l">En cours</div></div>
+      <div class="ss-item"><div class="ss-n ss-n-red">${fS.lat}</div><div class="ss-l">Retard</div></div>
+      <div class="ss-item"><div class="ss-n" style="color:var(--muted)">${fS.sta}</div><div class="ss-l">À démarrer</div></div>
+    </div>
+  </div>`;
+
+  // ── STG
+  const sS = countByStatus('STG');
+  const TS = SHOWROOMS.STG.length;
+  // STG_PLACE : idx 0=RDV, 1=Prop, 2=Cmd, 3=Placement
+  // STG_FORM  : idx 0=Formation
+  const stgRdv   = countStep('STG','STG_PLACE',0);
+  const stgProp  = countStep('STG','STG_PLACE',1);
+  const stgPlace = countStep('STG','STG_PLACE',3);
+  const stgForm  = countStep('STG','STG_FORM',0);
+
+  html += `<div class="sec-lbl">STG — ${TS} showrooms</div>
+  <div class="sum-card">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px"><span class="sum-badge sb-stg">STG</span></div>
+    <div class="prog-row"><div class="prog-meta"><span>RDV Responsable</span><span>${stgRdv}/${TS}</span></div><div class="prog-track"><div class="prog-fill" style="width:${(stgRdv/TS)*100}%;background:var(--red)"></div></div></div>
+    <div class="prog-row"><div class="prog-meta"><span>Propositions</span><span>${stgProp}/${TS}</span></div><div class="prog-track"><div class="prog-fill" style="width:${(stgProp/TS)*100}%;background:var(--red)"></div></div></div>
+    <div class="prog-row"><div class="prog-meta"><span>Placements</span><span>${stgPlace}/${TS}</span></div><div class="prog-track"><div class="prog-fill" style="width:${(stgPlace/TS)*100}%;background:var(--red)"></div></div></div>
+    <div class="prog-row"><div class="prog-meta"><span>Formations Meubles</span><span>${stgForm}/${TS}</span></div><div class="prog-track"><div class="prog-fill" style="width:${(stgForm/TS)*100}%;background:var(--red)"></div></div></div>
+    <div class="status-strip">
+      <div class="ss-item"><div class="ss-n ss-n-green">${sS.fin}</div><div class="ss-l">Finalisés</div></div>
+      <div class="ss-item"><div class="ss-n ss-n-blue">${sS.enc}</div><div class="ss-l">En cours</div></div>
+      <div class="ss-item"><div class="ss-n ss-n-red">${sS.lat}</div><div class="ss-l">Retard</div></div>
+      <div class="ss-item"><div class="ss-n" style="color:var(--muted)">${sS.sta}</div><div class="ss-l">À démarrer</div></div>
+    </div>
+  </div>`;
+
+  // ── SAMO
+  const saS = countByStatus('SAMO');
+  const TSA = SHOWROOMS.SAMO.length;
+  // SAMO : idx 0=Tarif (implicite), idx 1=Formation
+  const saForm = countStep('SAMO','SAMO',1);
+
+  html += `<div class="sec-lbl">SAMO — ${TSA} distributeurs</div>
+  <div class="sum-card sum-card-samo">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px"><span class="sum-badge sb-samo">SAMO</span></div>
+    <div class="prog-row"><div class="prog-meta" style="color:#555"><span>Tarif livré (tous par défaut)</span><span>${TSA}/${TSA}</span></div><div class="prog-track prog-track-samo"><div class="prog-fill" style="width:100%;background:#1A1A1A"></div></div></div>
+    <div class="prog-row"><div class="prog-meta" style="color:#555"><span>Formation nouveautés</span><span>${saForm}/${TSA}</span></div><div class="prog-track prog-track-samo"><div class="prog-fill" style="width:${(saForm/TSA)*100}%;background:#1A1A1A"></div></div></div>
+    <div class="status-strip" style="border-top-color:#E5E5E5">
+      <div class="ss-item" style="background:#F0F0F0"><div class="ss-n" style="color:#1A1A1A">${saS.fin}</div><div class="ss-l">Formés</div></div>
+      <div class="ss-item" style="background:#F0F0F0"><div class="ss-n" style="color:#555">${saS.enc + saS.sta}</div><div class="ss-l">À former</div></div>
+      <div class="ss-item" style="background:#F0F0F0"><div class="ss-n ss-n-red">${saS.lat}</div><div class="ss-l">Retard</div></div>
+    </div>
+  </div>`;
+
+  // Alertes sites sans démarrage
+  const noAction = {
+    FACQ: SHOWROOMS.FACQ.filter(n=>!db.entries.some(e=>e.client==='FACQ'&&e.showroom===n)),
+    STG:  SHOWROOMS.STG.filter(n=>!db.entries.some(e=>e.client==='STG'&&e.showroom===n)),
+  };
+  if (noAction.FACQ.length || noAction.STG.length) {
+    html += `<div class="sec-lbl">Aucune action encore enregistrée</div>`;
+    if (noAction.FACQ.length) html += `<div class="warn-box"><div class="warn-title">FACQ (${noAction.FACQ.length})</div><div class="warn-list">${noAction.FACQ.join(' · ')}</div></div>`;
+    if (noAction.STG.length)  html += `<div class="warn-box"><div class="warn-title">STG (${noAction.STG.length})</div><div class="warn-list">${noAction.STG.join(' · ')}</div></div>`;
+  }
+
+  c.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ACTIONS ⚡
+// ══════════════════════════════════════════════════════════════
+function renderActions(c) {
+  const tod = today0();
+  const in7 = new Date(tod); in7.setDate(in7.getDate()+7);
+
+  // Une action ne doit PAS apparaître dans les urgences si elle est implicitement résolue
+  const isImplicitlyDone = (e) => {
+    const client = e.client;
+    const nom    = e.showroom;
+    const entries = db.entries.filter(x => x.client===client && x.showroom===nom);
+
+    if (client === 'FACQ') {
+      const majSt = computePipelineStatus(entries, 'FACQ_MAJ');
+      const tarSt = computePipelineStatus(entries, 'FACQ_TAR');
+      const allSt = [...majSt, ...tarSt];
+      const pipeAll = [...PIPELINES.FACQ_MAJ, ...PIPELINES.FACQ_TAR];
+      const idx = pipeAll.findIndex(s => s.match(e));
+      if (idx >= 0 && (allSt[idx]==='impl')) return true;
+    }
+    if (client === 'STG') {
+      const placeSt = computePipelineStatus(entries, 'STG_PLACE');
+      const formSt  = computePipelineStatus(entries, 'STG_FORM');
+      const allSt   = [...placeSt, ...formSt];
+      const pipeAll = [...PIPELINES.STG_PLACE, ...PIPELINES.STG_FORM];
+      const idx = pipeAll.findIndex(s => s.match(e));
+      if (idx >= 0 && allSt[idx]==='impl') return true;
+    }
+    if (client === 'SAMO') {
+      const st = computePipelineStatus(entries, 'SAMO');
+      const idx = PIPELINES.SAMO.findIndex(s => s.match(e));
+      if (idx >= 0 && st[idx]==='impl') return true;
+    }
+    return false;
+  };
+
+  const eligible = db.entries.filter(e => e.statut !== 'Terminé' && !isImplicitlyDone(e));
+
+  const late    = eligible.filter(e => e.date && new Date(e.date) < tod).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const todayIt = eligible.filter(e => { if(!e.date) return false; const d=new Date(e.date);d.setHours(0,0,0,0);return d.getTime()===tod.getTime(); });
+  const coming  = eligible.filter(e => { if(!e.date) return false; const d=new Date(e.date);d.setHours(0,0,0,0);return d>tod&&d<=in7; }).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const relance = eligible.filter(e => e.statut==='Relance');
+  const toFix   = eligible.filter(e => e.statut==='RDV à fixer');
+
+  const aCard = (e, isLate) => {
+    const d = e.date ? new Date(e.date) : null;
+    const ac = {FACQ:'var(--blue2)',STG:'var(--red)',SAMO:'#1A1A1A'}[e.client];
+    return `<div class="act-card" style="border-left:3px solid ${ac}" onclick="editEntry(${e.id})">
+      <div class="act-dbox ${isLate?'late':''}">
+        <div class="act-dday">${d?d.getDate():'–'}</div>
+        <div class="act-dmon">${d?d.toLocaleString('fr',{month:'short'}):''}</div>
+      </div>
+      <div class="act-info">
+        <div class="act-title">${e.showroom} <span style="font-weight:500;color:var(--muted);font-size:10px">· ${e.client}</span></div>
+        <div class="act-sub">${e.type}</div>
+      </div>
+      <span class="${pillClass(e.statut)}">${e.statut}</span>
+    </div>`;
+  };
+
+  let html = '';
+  if (late.length)    { html += `<div class="sec-lbl" style="color:var(--red)">⚠ En retard (${late.length})</div>`;           late.forEach(e=>html+=aCard(e,true)); }
+  if (todayIt.length) { html += `<div class="sec-lbl">Aujourd'hui (${todayIt.length})</div>`;  todayIt.forEach(e=>html+=aCard(e,false)); }
+  if (relance.length) { html += `<div class="sec-lbl">Relances (${relance.length})</div>`;     relance.forEach(e=>html+=aCard(e,false)); }
+  if (coming.length)  { html += `<div class="sec-lbl">7 prochains jours (${coming.length})</div>`; coming.forEach(e=>html+=aCard(e,false)); }
+  if (toFix.length)   { html += `<div class="sec-lbl">RDV à fixer (${toFix.length})</div>`;   toFix.forEach(e=>html+=aCard(e,false)); }
+  if (!html) html = `<div class="empty"><i class="fas fa-check-circle"></i><p>Tout est à jour</p></div>`;
+  c.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PILOTAGE — pipeline visuel
+// ══════════════════════════════════════════════════════════════
+function renderPilotage(c) {
+  const client = currentTab.toUpperCase();
+  const isSamo = client === 'SAMO';
+  let html = `<div class="sec-lbl">Pilotage ${client}</div>`;
+
+  SHOWROOMS[client].forEach((nom, idx) => {
+    const entries = db.entries.filter(e => e.client===client && e.showroom===nom);
+    const gs = siteGlobalStatus(client, nom);
+    const badgeHtml = statusBadge(gs, isSamo);
+    const cardCls  = isSamo ? 'site-card site-card-samo' : 'site-card';
+    const nameCls  = isSamo ? 'site-name site-name-samo' : 'site-name';
+    const detCls   = isSamo ? 'site-det-btn site-det-btn-samo' : 'site-det-btn';
+    const detCall  = `viewDetailsIdx('${client}',${idx})`;
+
+    if (client === 'FACQ') {
+      const majSt = computePipelineStatus(entries, 'FACQ_MAJ');
+      const tarSt = computePipelineStatus(entries, 'FACQ_TAR');
+      html += `<div class="${cardCls}">
+        <div class="site-card-hdr">
+          <div><span class="${nameCls}">${nom}</span>${badgeHtml}</div>
+          <button class="${detCls}" onclick="${detCall}">DÉTAILS</button>
+        </div>
+        <div class="pipe-lbl">MAJ SHOWROOM</div>
+        <div class="pipeline">${buildPipeHTML(PIPELINES.FACQ_MAJ, majSt, false)}</div>
+        <div class="pipe-lbl">TARIFS &amp; FORMATIONS</div>
+        <div class="pipeline">${buildPipeHTML(PIPELINES.FACQ_TAR, tarSt, false)}</div>
+      </div>`;
+    } else if (client === 'STG') {
+      const placeSt = computePipelineStatus(entries, 'STG_PLACE');
+      const formSt  = computePipelineStatus(entries, 'STG_FORM');
+      html += `<div class="${cardCls}">
+        <div class="site-card-hdr">
+          <div><span class="${nameCls}">${nom}</span>${badgeHtml}</div>
+          <button class="${detCls}" onclick="${detCall}">DÉTAILS</button>
+        </div>
+        <div class="pipe-lbl">PLACEMENT</div>
+        <div class="pipeline">${buildPipeHTML(PIPELINES.STG_PLACE, placeSt, false)}</div>
+        <div class="pipe-lbl">FORMATION</div>
+        <div class="pipeline">${buildPipeHTML(PIPELINES.STG_FORM, formSt, false)}</div>
+      </div>`;
+    } else { // SAMO
+      const st = computePipelineStatus(entries, 'SAMO');
+      html += `<div class="${cardCls}">
+        <div class="site-card-hdr">
+          <div><span class="${nameCls}">${nom}</span>${badgeHtml}</div>
+          <button class="${detCls}" onclick="${detCall}">DÉTAILS</button>
+        </div>
+        <div class="pipeline">${buildPipeHTML(PIPELINES.SAMO, st, true)}</div>
+      </div>`;
+    }
+  });
+
+  c.innerHTML = html;
+}
+
+function statusBadge(gs, samo) {
+  if (samo) {
+    if (gs==='final')   return `<span class="site-badge sb-final-samo">✓ Formé</span>`;
+    if (gs==='late')    return `<span class="site-badge sb-late">RETARD</span>`;
+    if (gs==='encours') return `<span class="site-badge sb-encours-samo">En cours</span>`;
+    return '';
+  }
+  if (gs==='final')   return `<span class="site-badge sb-final">✓ Finalisé</span>`;
+  if (gs==='late')    return `<span class="site-badge sb-late">RETARD</span>`;
+  if (gs==='encours') return `<span class="site-badge sb-encours">En cours</span>`;
+  return '';
+}
+
+function buildPipeHTML(pipe, statuses, samo) {
+  return pipe.map((step, i) => {
+    const s = statuses[i];
+    // Connecteur (ligne entre les points)
+    const connCls = i < pipe.length-1
+      ? (s==='done' ? (samo?'s-done-samo':'s-done') : (s==='impl' ? (samo?'s-impl-samo':'s-impl') : (s==='active'||s==='rdv' ? 's-active' : '')))
+      : '';
+    // Point
+    const dotCls = s==='done' ? (samo?'s-done-samo':'s-done')
+                 : s==='impl' ? (samo?'s-impl-samo':'s-impl')
+                 : s==='rdv'  ? 's-rdv'
+                 : s==='active'? (samo?'s-active-samo':'s-active')
+                 : (samo?'s-next-samo':'s-next');
+    const icon = s==='done'||s==='impl' ? '✓' : (s==='rdv' ? '📅' : (s==='active' ? '…' : ''));
+    const lblCls = s==='done'||s==='impl' ? (samo?'s-done-samo':'s-done') : (s==='active' ? (samo?'s-active-samo':'s-active') : '');
+
+    return `<div class="step ${connCls}">
+      <div class="step-dot ${dotCls}">${icon}</div>
+      <div class="step-lbl ${lblCls}">${step.short}</div>
+    </div>`;
+  }).join('');
+}
+
+function viewDetails(nom) {
+  filterShowroom = nom;
+  document.getElementById('exp-bar-wrap').style.display = 'none';
+  render();
+}
+
+// Appel sécurisé depuis HTML — évite les bugs avec apostrophes/espaces dans les noms
+function viewDetailsIdx(client, idx) {
+  filterShowroom = SHOWROOMS[client][idx];
+  document.getElementById('exp-bar-wrap').style.display = 'none';
+  render();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DETAILS — fiche site
+// ══════════════════════════════════════════════════════════════
+function renderDetails(c) {
+  const client  = currentTab.toUpperCase();
+  const isSamo  = client === 'SAMO';
+  const entries = db.entries.filter(e => e.client===client && e.showroom===filterShowroom);
+  const ac      = {FACQ:'var(--blue2)',STG:'var(--red)',SAMO:'#1A1A1A'}[client];
+  const gs      = siteGlobalStatus(client, filterShowroom);
+
+  let html = `<div class="back-row">
+    <div class="back-btn" onclick="filterShowroom=null;if(['facq','stg'].includes(currentTab))document.getElementById('exp-bar-wrap').style.display='block';render()">
+      <i class="fas fa-arrow-left"></i>
+    </div>
+    <div>
+      <div class="back-title">${filterShowroom}</div>
+      <div class="back-sub">${client} · ${statusLabel(gs)}</div>
+    </div>
+  </div>`;
+
+  // Pipeline(s) en haut de fiche
+  const pipeBlock = (title, pKey, samo) => {
+    const st = computePipelineStatus(entries, pKey);
+    return `<div style="margin-bottom:10px">
+      ${title ? `<div class="pipe-lbl ${samo?'pipe-lbl-samo':''}" style="padding:0 0 4px">${title}</div>` : ''}
+      <div class="pipeline" style="padding:0 0 6px">${buildPipeHTML(PIPELINES[pKey], st, samo)}</div>
+    </div>`;
+  };
+
+  html += `<div style="background:${isSamo?'var(--samo-bg)':'#fff'};border:1px solid ${isSamo?'var(--samo-border)':'var(--border)'};border-radius:13px;padding:13px 14px;margin-bottom:9px">`;
+  if (client==='FACQ') {
+    html += pipeBlock('MAJ SHOWROOM', 'FACQ_MAJ', false);
+    html += pipeBlock('TARIFS & FORMATIONS', 'FACQ_TAR', false);
+  } else if (client==='STG') {
+    html += pipeBlock('PLACEMENT', 'STG_PLACE', false);
+    html += pipeBlock('FORMATION', 'STG_FORM', false);
+  } else {
+    html += pipeBlock('', 'SAMO', true);
+  }
+  html += `</div>`;
+
+  // Étapes implicitement validées
+  const implSteps = getImplicitSteps(entries, client);
+  if (implSteps.length > 0) {
+    html += `<div class="impl-card">
+      <div class="impl-title">✓ Étapes implicitement validées</div>
+      <div class="impl-steps">${implSteps.map(s=>`✓ ${s}`).join('<br>')}</div>
+    </div>`;
+  }
+
+  // Bouton ajout — stocke le nom dans un data attribute pour éviter les problèmes d'échappement
+  html += `<button class="btn-add-step" onclick="openModalForShowroom(currentShowroomForModal())">+ Ajouter une action pour ${filterShowroom}</button>`;
+
+  if (!entries.length) {
+    html += `<div class="empty" style="padding:30px 20px"><i class="fas fa-inbox"></i><p>Aucune action</p></div>`;
+    c.innerHTML = html; return;
+  }
+
+  // Entrées non reconnues par aucun pipeline — ne jamais les silencier
+  const allPipeSteps = client==='FACQ'
+    ? [...PIPELINES.FACQ_MAJ, ...PIPELINES.FACQ_TAR]
+    : client==='STG'
+    ? [...PIPELINES.STG_PLACE, ...PIPELINES.STG_FORM]
+    : PIPELINES.SAMO;
+
+  const unmatched = entries.filter(e =>
+    e.type !== 'Suivi / Note' &&
+    !e.type.includes('Suivi') &&
+    !allPipeSteps.some(step => step.match(e))
+  );
+  if (unmatched.length > 0) {
+    html += `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:11px;padding:11px 13px;margin-bottom:9px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400E;margin-bottom:6px">⚠ Actions non classées dans le pipeline</div>
+      ${unmatched.map(e=>`<div style="font-size:12px;color:#78350F;margin-bottom:4px">· ${e.type} <span style="opacity:.6">(${e.statut})</span> <button onclick="editEntry(${e.id})" style="font-size:10px;font-weight:700;color:var(--blue2);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif">MODIFIER</button></div>`).join('')}
+    </div>`;
+  }
+
+  html += `<div class="sec-lbl">Historique</div>`;
+  entries.slice().reverse().forEach(e => {
+    const late = isLateEntry(e);
+    // Indique si l'entrée est reconnue dans le pipeline
+    const isInPipe = allPipeSteps.some(step => step.match(e));
+    const pipeTag = isInPipe ? '' : '<span style="font-size:9px;background:#FEF3C7;color:#B45309;border-radius:5px;padding:1px 5px;margin-left:5px;font-weight:700">NON CLASSÉ</span>';
+    html += `<div class="step-detail-card" style="border-left:3px solid ${ac}">
+      <div class="sdc-top">
+        <div>
+          <div class="sdc-type">${e.type}${pipeTag}</div>
+          ${e.date ? `<div class="sdc-date">📅 ${e.date}${late?'<span style="color:var(--red);font-weight:700;margin-left:6px">RETARD</span>':''}</div>` : ''}
+        </div>
+        <span class="${pillClass(e.statut)}">${e.statut}</span>
+      </div>
+      ${e.note ? `<div class="sdc-note">${e.note}</div>` : ''}
+      <div class="sdc-btns">
+        ${e.statut!=='Terminé' ? `<button class="btn-sdc-done" onclick="markDone(${e.id})">✓ Terminé</button>` : ''}
+        <button class="btn-sdc-edit" onclick="editEntry(${e.id})">MODIFIER</button>
+        <button class="btn-sdc-del"  onclick="deleteEntry(${e.id})">SUPPRIMER</button>
+      </div>
+    </div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+function statusLabel(gs) {
+  return {final:'✓ Finalisé',encours:'En cours',late:'⚠ Retard',start:'À démarrer'}[gs]||'';
+}
+
+function getImplicitSteps(entries, client) {
+  const labels = [];
+  if (client === 'FACQ') {
+    const majSt = computePipelineStatus(entries, 'FACQ_MAJ');
+    const tarSt = computePipelineStatus(entries, 'FACQ_TAR');
+    const majLabels = ['RDV MAJ showroom','Offre envoyée','Commande reçue','Placement effectué'];
+    const tarLabels = ['Formation Meubles donnée','Formation Parois donnée'];
+    majSt.forEach((s,i) => { if(s==='impl') labels.push(majLabels[i]); });
+    tarSt.forEach((s,i) => { if(s==='impl') labels.push(tarLabels[i]); });
+  }
+  if (client === 'STG') {
+    const placeSt = computePipelineStatus(entries, 'STG_PLACE');
+    const placeLabels = ['RDV Responsable effectué','Proposition envoyée','Commande reçue','Placement effectué'];
+    placeSt.forEach((s,i) => { if(s==='impl') labels.push(placeLabels[i]); });
+    // STG_FORM n'a qu'une seule étape, pas de déduction possible
+  }
+  if (client === 'SAMO') {
+    const st = computePipelineStatus(entries, 'SAMO');
+    if (st[0]==='impl') labels.push('Tarif SAMO livré (par défaut pour tous)');
+  }
+  return labels;
+}
+
+function markDone(id) {
+  const e = db.entries.find(x => x.id===id);
+  if (e) { e.statut='Terminé'; saveDB(); render(); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AGENDA
+// ══════════════════════════════════════════════════════════════
+function renderAgenda(c) {
+  const tod = today0();
+  const sorted = db.entries.filter(e=>e.date).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let html = `<div class="sec-lbl">Agenda</div>`;
+  if (!sorted.length) { html+=`<div class="empty"><i class="fas fa-calendar"></i><p>Aucune date planifiée</p></div>`; c.innerHTML=html; return; }
+  sorted.forEach(e => {
+    const d = new Date(e.date); d.setHours(0,0,0,0);
+    const late   = d < tod && e.statut!=='Terminé';
+    const isToday= d.getTime()===tod.getTime();
+    const ac = {FACQ:'var(--blue2)',STG:'var(--red)',SAMO:'#1A1A1A'}[e.client];
+    html += `<div class="act-card" style="border-left:3px solid ${ac}" onclick="editEntry(${e.id})">
+      <div class="act-dbox ${late?'late':''}">
+        <div class="act-dday">${d.getDate()}</div>
+        <div class="act-dmon">${d.toLocaleString('fr',{month:'short'})}</div>
+      </div>
+      <div class="act-info">
+        <div class="act-title">${e.showroom}
+          ${isToday?'<span style="font-size:9px;font-weight:700;background:#DBEAFE;color:#1D4ED8;border-radius:5px;padding:1px 5px;margin-left:4px">AUJOURD\'HUI</span>':''}
+          ${late?'<span style="font-size:9px;font-weight:700;background:#FEE2E2;color:var(--red);border-radius:5px;padding:1px 5px;margin-left:4px">RETARD</span>':''}
+        </div>
+        <div class="act-sub">${e.client} · ${e.type}</div>
+      </div>
+      <span class="${pillClass(e.statut)}">${e.statut}</span>
+    </div>`;
+  });
+  c.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════════════════════════
+function showExport() {
+  const client = currentTab.toUpperCase();
+  const data = db.entries.filter(e=>e.client===client).sort((a,b)=>a.showroom.localeCompare(b.showroom));
+  if (!data.length) { alert('Aucune donnée.'); return; }
+  let html = '<table class="exp-tbl" id="tbl-copy"><thead><tr><th>Site</th><th>Statut global</th><th>Étape</th><th>Statut</th><th>Date</th><th>Notes</th></tr></thead><tbody>';
+  data.forEach(e => {
+    const gs = siteGlobalStatus(e.client, e.showroom);
+    html += `<tr><td><b>${e.showroom}</b></td><td>${statusLabel(gs)}</td><td>${e.type}</td><td>${e.statut}</td><td>${e.date||''}</td><td>${e.note||''}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('exp-title').textContent = 'Rapport ' + client;
+  document.getElementById('exp-tbl-cont').innerHTML = html;
+  document.getElementById('exp-ov').style.display = 'flex';
+}
+function closeExport() { document.getElementById('exp-ov').style.display='none'; }
+function copyForExcel() {
+  const t = document.getElementById('tbl-copy'); if(!t) return;
+  const r = document.createRange(); r.selectNode(t);
+  window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+  document.execCommand('copy'); window.getSelection().removeAllRanges();
+  alert('Tableau copié ! Coller dans Excel ou Mail.'); closeExport();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════════════════════════
+function openModal() {
+  document.getElementById('eid').value='';
+  document.getElementById('modal-ttl').textContent='Nouvelle action';
+  populateShowrooms(null);
+  updateTypeOptions();
+  document.getElementById('fstatut').value='À faire';
+  document.getElementById('fdate').value='';
+  document.getElementById('fnote').value='';
+  document.getElementById('modal').style.display='flex';
+}
+function currentShowroomForModal() {
+  return filterShowroom; // filterShowroom est toujours défini quand on est dans renderDetails
+}
+
+function openModalForShowroom(nom) {
+  const client = currentTab.toUpperCase();
+  openModal();
+  const val = client + '|' + nom;
+  const sel = document.getElementById('fshowroom');
+  if (sel) { sel.value = val; updateTypeOptions(); }
+}
+function closeModal() { document.getElementById('modal').style.display='none'; }
+
+function populateShowrooms(val) {
+  const sel = document.getElementById('fshowroom');
+  let list = [];
+  for (const [c, noms] of Object.entries(SHOWROOMS)) noms.forEach(n=>list.push({c,n}));
+  const cf = {'facq':'FACQ','stg':'STG','samo':'SAMO'}[currentTab];
+  if (cf && !['resume','actions','agenda'].includes(currentTab)) list=list.filter(s=>s.c===cf);
+  sel.innerHTML = list.map(s=>`<option value="${s.c}|${s.n}">${s.c} — ${s.n}</option>`).join('');
+  if (val) sel.value=val;
+}
+
+function updateTypeOptions() {
+  const val = document.getElementById('fshowroom').value;
+  const client = val ? val.split('|')[0] : ({'facq':'FACQ','stg':'STG','samo':'SAMO'}[currentTab]||'FACQ');
+  const types = ALL_TYPES[client]||ALL_TYPES.FACQ;
+  document.getElementById('ftype').innerHTML = types.map(t=>`<option>${t}</option>`).join('');
+}
+
+function saveEntry() {
+  const id  = document.getElementById('eid').value;
+  const sv  = document.getElementById('fshowroom').value;
+  if (!sv) return;
+  const [client,nom] = sv.split('|');
+  const entry = {
+    id: id ? parseInt(id) : Date.now(),
+    client, showroom:nom,
+    type:   document.getElementById('ftype').value,
+    statut: document.getElementById('fstatut').value,
+    date:   document.getElementById('fdate').value,
+    note:   document.getElementById('fnote').value
+  };
+  if (id) {
+    const i = db.entries.findIndex(e=>e.id===parseInt(id));
+    if (i>=0) db.entries[i]=entry;
+  } else {
+    db.entries.push(entry);
+  }
+  saveDB(); closeModal(); render();
+}
+
+function deleteEntry(id) {
+  if (confirm('Supprimer cette action ?')) {
+    db.entries = db.entries.filter(e=>e.id!==id); saveDB(); render();
+  }
+}
+
+function editEntry(id) {
+  const e = db.entries.find(x=>x.id===id); if(!e) return;
+  document.getElementById('eid').value=e.id;
+  document.getElementById('modal-ttl').textContent='Modifier';
+  populateShowrooms(`${e.client}|${e.showroom}`);
+  updateTypeOptions();
+  document.getElementById('ftype').value=e.type;
+  document.getElementById('fstatut').value=e.statut;
+  document.getElementById('fdate').value=e.date||'';
+  document.getElementById('fnote').value=e.note||'';
+  document.getElementById('modal').style.display='flex';
+}
+
+window.onload = () => switchTab('resume');
+</script>
+</body>
+</html>
