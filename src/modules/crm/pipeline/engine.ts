@@ -1,11 +1,12 @@
-import type { Action, IsoDate, Pipeline, PipelineStep, ProgressStatus, StepState } from './types';
+import type { Action, Deal, IsoDate, Pipeline, PipelineStep, ProgressStatus, StepState } from './types';
 
-// Le statut de pipeline n'est jamais stocké : tout est recalculé à partir des actions.
+// Le statut de pipeline n'est jamais stocké : tout est recalculé, par affaire, à partir de ses actions.
 
 const ACTIVE_STATUSES = new Set(['todo', 'in_progress', 'waiting', 'follow_up']);
 
+// Ordre stable même si deux étapes partageaient une position (la base l'interdit désormais).
 function sortedSteps(pipeline: Pipeline): PipelineStep[] {
-  return [...pipeline.steps].sort((a, b) => a.order - b.order);
+  return [...pipeline.steps].sort((a, b) => a.order - b.order || a.code.localeCompare(b.code));
 }
 
 /** État brut d'une étape d'après ses propres actions (la plus avancée l'emporte). */
@@ -20,7 +21,7 @@ function rawStepState(stepId: string, actions: Action[]): StepState {
 /**
  * États des étapes d'un pipeline, dans l'ordre des étapes.
  * Règle métier : une étape avancée terminée valide toutes les étapes précédentes.
- * `actions` = les actions d'un seul client.
+ * `actions` = les actions d'une seule affaire.
  */
 export function computeStepStates(pipeline: Pipeline, actions: Action[]): StepState[] {
   const steps = sortedSteps(pipeline);
@@ -54,37 +55,47 @@ export function isActionLate(action: Action, today: IsoDate): boolean {
   return action.status !== 'done' && action.date !== null && action.date < today;
 }
 
+/** Vrai si l'action porte sur une étape validée par déduction : elle ne doit plus apparaître dans les urgences. */
+export function isActionImplied(action: Action, pipeline: Pipeline, actions: Action[]): boolean {
+  if (action.stepId === null) return false;
+  return stepState(pipeline, action.stepId, actions) === 'implied';
+}
+
 /**
- * Avancement d'un client sur un pipeline.
- * Comme dans le prototype, le retard se mesure sur toutes les actions du client.
+ * Définition unique d'une action « réellement ouverte », utilisée pour les urgences,
+ * les retards et les statuts : pas terminée, et son étape n'est pas déjà validée par déduction.
  */
-export function pipelineProgress(pipeline: Pipeline, actions: Action[], today: IsoDate): ProgressStatus {
-  const states = computeStepStates(pipeline, actions);
+export function isActionOpen(action: Action, pipeline: Pipeline | null, actions: Action[]): boolean {
+  if (action.status === 'done') return false;
+  return pipeline === null || !isActionImplied(action, pipeline, actions);
+}
+
+export function isOpenAndLate(action: Action, pipeline: Pipeline | null, actions: Action[], today: IsoDate): boolean {
+  return isActionLate(action, today) && isActionOpen(action, pipeline, actions);
+}
+
+/** Avancement d'une affaire. Une affaire gagnée est finie ; perdue ou abandonnée, elle est close. */
+export function dealProgress(deal: Deal, today: IsoDate): ProgressStatus {
+  if (deal.status === 'lost' || deal.status === 'abandoned') return 'closed';
+  if (deal.status === 'won') return 'finished';
+  const states = computeStepStates(deal.pipeline, deal.actions);
   if (states.length > 0 && isStepCompleted(states[states.length - 1])) return 'finished';
-  if (actions.some((a) => isActionLate(a, today))) return 'late';
+  if (deal.actions.some((a) => isOpenAndLate(a, deal.pipeline, deal.actions, today))) return 'late';
   if (states.some((s) => s !== 'none')) return 'in_progress';
   return 'not_started';
 }
 
 /**
- * Avancement global d'un client suivi sur plusieurs pipelines indépendants
- * (ex. FACQ : « MAJ showroom » et « Tarifs & formations »).
+ * Avancement global d'un client : ses affaires (hors affaires closes) et ses actions hors affaire
+ * (notes, suivis). Fini si toutes les affaires sont finies ; en retard si une affaire est en retard
+ * ou si une action hors affaire réellement ouverte est en retard.
  */
-export function clientProgress(pipelines: Pipeline[], actions: Action[], today: IsoDate): ProgressStatus {
-  if (pipelines.length === 0) return 'not_started';
-  const all = pipelines.map((p) => pipelineProgress(p, actions, today));
-  if (all.every((s) => s === 'finished')) return 'finished';
-  if (all.some((s) => s === 'late')) return 'late';
-  if (all.every((s) => s === 'not_started')) return 'not_started';
+export function clientProgress(deals: Deal[], looseActions: Action[], today: IsoDate): ProgressStatus {
+  const active = deals.map((d) => dealProgress(d, today)).filter((s) => s !== 'closed');
+  const looseLate = looseActions.some((a) => isOpenAndLate(a, null, looseActions, today));
+  if (active.includes('late') || looseLate) return 'late';
+  if (active.length === 0) return deals.length > 0 ? 'closed' : 'not_started';
+  if (active.every((s) => s === 'finished')) return 'finished';
+  if (active.every((s) => s === 'not_started')) return 'not_started';
   return 'in_progress';
-}
-
-/** Vrai si l'action porte sur une étape validée par déduction : elle ne doit plus apparaître dans les urgences. */
-export function isActionImplied(action: Action, pipelines: Pipeline[], actions: Action[]): boolean {
-  if (action.stepId === null) return false;
-  for (const p of pipelines) {
-    const state = stepState(p, action.stepId, actions);
-    if (state !== null) return state === 'implied';
-  }
-  return false;
 }

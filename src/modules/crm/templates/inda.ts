@@ -7,7 +7,7 @@ export interface StepTemplate {
   code: string;
   label: { fr: string; nl: string };
   /** Libellé court affiché sous le point du pipeline. */
-  short: string;
+  short: { fr: string; nl: string };
 }
 
 export interface PipelineTemplate {
@@ -58,10 +58,10 @@ export const INDA_PIPELINES: PipelineTemplate[] = [
     groupCode: 'FACQ',
     label: { fr: 'MAJ showroom', nl: 'Update showroom' },
     steps: [
-      { code: 'rdv', short: 'RDV', label: { fr: 'RDV mise à jour showroom', nl: 'Afspraak update showroom' } },
-      { code: 'offre', short: 'OFFRE', label: { fr: 'Offre showroom envoyée', nl: 'Offerte showroom verstuurd' } },
-      { code: 'commande', short: 'CMD', label: { fr: 'Commande passée', nl: 'Bestelling geplaatst' } },
-      { code: 'placement', short: 'PLACE', label: { fr: 'Placement / installation', nl: 'Plaatsing / installatie' } },
+      { code: 'rdv', short: { fr: 'RDV', nl: 'AFSPR' }, label: { fr: 'RDV mise à jour showroom', nl: 'Afspraak update showroom' } },
+      { code: 'offre', short: { fr: 'OFFRE', nl: 'OFFERTE' }, label: { fr: 'Offre showroom envoyée', nl: 'Offerte showroom verstuurd' } },
+      { code: 'commande', short: { fr: 'CMD', nl: 'BEST' }, label: { fr: 'Commande passée', nl: 'Bestelling geplaatst' } },
+      { code: 'placement', short: { fr: 'PLACE', nl: 'PLAATS' }, label: { fr: 'Placement / installation', nl: 'Plaatsing / installatie' } },
     ],
   },
   {
@@ -69,8 +69,8 @@ export const INDA_PIPELINES: PipelineTemplate[] = [
     groupCode: 'FACQ',
     label: { fr: 'Tarifs & formations', nl: 'Tarieven & opleidingen' },
     steps: [
-      { code: 'formation_meubles', short: 'FORM.M', label: { fr: 'Formation meubles', nl: 'Opleiding meubelen' } },
-      { code: 'formation_parois', short: 'FORM.P', label: { fr: 'Formation parois', nl: 'Opleiding douchewanden' } },
+      { code: 'formation_meubles', short: { fr: 'FORM.M', nl: 'OPL.M' }, label: { fr: 'Formation meubles', nl: 'Opleiding meubelen' } },
+      { code: 'formation_parois', short: { fr: 'FORM.P', nl: 'OPL.D' }, label: { fr: 'Formation parois', nl: 'Opleiding douchewanden' } },
     ],
   },
   {
@@ -78,25 +78,25 @@ export const INDA_PIPELINES: PipelineTemplate[] = [
     groupCode: 'STG',
     label: { fr: 'Placement', nl: 'Plaatsing' },
     steps: [
-      { code: 'rdv', short: 'RDV', label: { fr: 'RDV responsable showroom', nl: 'Afspraak showroomverantwoordelijke' } },
-      { code: 'proposition', short: 'PROP', label: { fr: 'Proposition showroom', nl: 'Voorstel showroom' } },
-      { code: 'commande', short: 'CMD', label: { fr: 'Commande passée', nl: 'Bestelling geplaatst' } },
-      { code: 'placement', short: 'PLACE', label: { fr: 'Placement / installation', nl: 'Plaatsing / installatie' } },
+      { code: 'rdv', short: { fr: 'RDV', nl: 'AFSPR' }, label: { fr: 'RDV responsable showroom', nl: 'Afspraak showroomverantwoordelijke' } },
+      { code: 'proposition', short: { fr: 'PROP', nl: 'VOORST' }, label: { fr: 'Proposition showroom', nl: 'Voorstel showroom' } },
+      { code: 'commande', short: { fr: 'CMD', nl: 'BEST' }, label: { fr: 'Commande passée', nl: 'Bestelling geplaatst' } },
+      { code: 'placement', short: { fr: 'PLACE', nl: 'PLAATS' }, label: { fr: 'Placement / installation', nl: 'Plaatsing / installatie' } },
     ],
   },
   {
     code: 'STG_FORM',
     groupCode: 'STG',
     label: { fr: 'Formation', nl: 'Opleiding' },
-    steps: [{ code: 'formation', short: 'FORM', label: { fr: 'Formation meubles', nl: 'Opleiding meubelen' } }],
+    steps: [{ code: 'formation', short: { fr: 'FORM', nl: 'OPL' }, label: { fr: 'Formation meubles', nl: 'Opleiding meubelen' } }],
   },
   {
     code: 'SAMO',
     groupCode: 'SAMO',
     label: { fr: 'Tarifs & formation', nl: 'Tarieven & opleiding' },
     steps: [
-      { code: 'tarif', short: 'TARIF', label: { fr: 'Tarif SAMO livré', nl: 'SAMO-tarief geleverd' } },
-      { code: 'formation', short: 'FORM', label: { fr: 'Formation nouveautés produits', nl: 'Opleiding productnieuwigheden' } },
+      { code: 'tarif', short: { fr: 'TARIF', nl: 'PRIJS' }, label: { fr: 'Tarif SAMO livré', nl: 'SAMO-prijslijst bezorgd' } },
+      { code: 'formation', short: { fr: 'FORM', nl: 'OPL' }, label: { fr: 'Formation nouveautés produits', nl: 'Opleiding productnieuwigheden' } },
     ],
     // Décision métier du prototype : le tarif est considéré livré pour tous.
     impliedByDefault: ['tarif'],

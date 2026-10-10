@@ -25,24 +25,29 @@ Vérifications faites en local uniquement : PostgreSQL 16 jetable avec l'émulat
 | I03 JSON non validé (partie) | **corrigé en partie** | Forme de la sauvegarde vérifiée ; dates impossibles (2026-02-30) refusées et signalées ; identifiants en double signalés ; étape non reconnue signalée. Reste : import transactionnel et clé d'import contre les doublons à la réexécution (lot 2, avec l'écran d'import). | Tests unitaires. |
 | Néerlandais : `index.ts` q=0 | **corrigé** | Une langue avec `q=0` ou une pondération hors 0–1 n'est plus choisie. | Test unitaire. |
 
-## Confirmés, pour le lot 2 (commercial utilisable)
+## Lot 2, partie base et logique (fait, branche `claude/lot2-commercial`)
+
+| Id | Statut | Ce qui a été fait | Preuve |
+|---|---|---|---|
+| P02 Une ancienne affaire termine les suivantes | **corrigé** (décision : oui aux affaires) | Table `deals` : un projet chez un client sur un pipeline, statut ouverte / gagnée / perdue / abandonnée. Le moteur calcule par affaire (`dealProgress`) ; le client combine ses affaires actives (`clientProgress`). | Test : placement 2025 gagné, affaire 2026 en cours → client « en cours ». Test base : deux affaires sur le même pipeline. |
+| P01 Retard après disparition de l'urgence | **corrigé** | Une seule définition `isActionOpen` (pas terminée et étape non déduite) pour urgences, retards et statuts. | Test intégré du scénario de la relecture : états, urgences et statut cohérents. |
+| P03 Ordre d'étapes ambigu | **corrigé** | Position unique par pipeline (contrainte différable) ; `reorder_pipeline_steps()` réordonne en une transaction ; tri stable dans le moteur. | Tests base et unitaire. |
+| P04 Étape d'un groupe inapplicable | **corrigé** | Une affaire n'utilise qu'un pipeline commun ou celui du groupe du client ; une action sur une étape passe par une affaire du même client et du même pipeline ; changement de groupe refusé si affaires ouvertes ailleurs. Les pipelines communs restent libres. | Tests base (5 cas). |
+| P05 Suppression qui déclasse l'historique | **corrigé** | Colonnes `archived_at` ; suppression refusée d'une étape utilisée ou d'un groupe qui a des pipelines (archiver à la place). | Tests base. |
+| Néerlandais (libellés) | **corrigé** | Propositions de la relecture appliquées ; libellés courts du modèle INDA en FR et NL. À faire relire par un néerlandophone. | Contrôle des clés FR/NL. |
+
+## Confirmés, pour la suite du lot 2 (écrans et import)
 
 | Id | Constat | Correction prévue |
 |---|---|---|
-| P01 Retard affiché après disparition de l'urgence | Confirmé par lecture : `pipelineProgress` compte en retard une action dont l'étape est déduite, alors que l'écran Actions l'écarte. | Une seule définition d'« action réellement ouverte » pour les listes et les statuts. |
-| P03 Ordre d'étapes ambigu | Confirmé : pas d'unicité de `position` par pipeline. | Contrainte unique (différable) + réordonnancement transactionnel + tri stable dans le moteur. |
-| P04 Étape d'un groupe inapplicable au client | Confirmé : la clé composite garantit l'organisation, pas le groupe. | Vérifier que le pipeline de l'étape est commun ou celui du groupe du client. |
-| P05 Suppression d'un groupe déclasse l'historique | Confirmé : cascade sur pipelines et étapes, `step_id` mis à NULL. | Archiver au lieu de supprimer une structure utilisée. |
 | I02 Correspondances fragiles | Confirmé (casse, « Commande annulée » → commande). | Construire la table d'alias à partir de **la vraie sauvegarde de Fabrice** et faire revoir les cas ambigus. |
 | I03 (reste) | Import non transactionnel, pas de clé d'import. | Avec l'écran d'import. |
 | E04 Import universel | Aperçu de 10 lignes insuffisant. | Bilan complet des anomalies, formats et limites définis, commencer par les formats des premiers testeurs. |
-| Néerlandais (libellés) | Propositions de formulation (« Afspraak in te plannen », « Afgerond », « SAMO-prijslijst bezorgd », libellés courts traduits). | À appliquer après relecture par un néerlandophone. |
 
 ## Arbitrages métier à prendre
 
 | Id | Question |
 |---|---|
-| P02 | Faut-il une « affaire » (instance de pipeline) par projet chez un même client, pour qu'un placement de 2026 ne termine pas une nouvelle affaire ? (Recommandé : oui.) |
 | P06 | Le tarif SAMO « livré par défaut » reste-t-il vrai si une action ouverte est ajoutée ? Une ancienne tâche ouverte sur une étape déjà terminée doit-elle rester dans les urgences ? |
 | Comportements conservés | « RDV à fixer » et « Bloqué » ne démarrent pas une étape ; le retard se mesure sur toutes les actions du client. À confirmer. |
 | Relances | Point de départ (dernière visite ? dernière action ?), mois calendaires ou jours, rappel interne ou email au client. |

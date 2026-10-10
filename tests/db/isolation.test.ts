@@ -5,7 +5,7 @@ import { addMember, asUser, connect, createOrg, createUser, type OrgRows, seedOr
 // Isolation des comptes (règle n°1 du CLAUDE.md) : données présentes dans A et dans B,
 // lecture, écriture et liens croisés testés table par table.
 
-const TABLES = ['client_groups', 'clients', 'contacts', 'pipelines', 'pipeline_steps', 'actions'] as const;
+const TABLES = ['client_groups', 'clients', 'contacts', 'pipelines', 'pipeline_steps', 'deals', 'actions'] as const;
 type Table = (typeof TABLES)[number];
 const ROW_KEY: Record<Table, keyof OrgRows> = {
   client_groups: 'group',
@@ -13,6 +13,7 @@ const ROW_KEY: Record<Table, keyof OrgRows> = {
   contacts: 'contact',
   pipelines: 'pipeline',
   pipeline_steps: 'step',
+  deals: 'deal',
   actions: 'action',
 };
 
@@ -123,8 +124,26 @@ describe('liens entre organisations (clés composites)', () => {
     },
     {
       name: 'action → étape',
-      insert: () => [`insert into actions (organization_id, client_id, step_id) values ($1, $2, $3)`, [orgB, B.client, A.step]],
+      insert: () => [
+        `insert into actions (organization_id, client_id, deal_id, step_id) values ($1, $2, $3, $4)`,
+        [orgB, B.client, B.deal, A.step],
+      ],
       update: () => [`update actions set step_id = $1 where id = $2`, [A.step, B.action]],
+    },
+    {
+      name: 'action → affaire',
+      insert: () => [`insert into actions (organization_id, client_id, deal_id) values ($1, $2, $3)`, [orgB, B.client, A.deal]],
+      update: () => [`update actions set deal_id = $1, step_id = null where id = $2`, [A.deal, B.action]],
+    },
+    {
+      name: 'affaire → client',
+      insert: () => [`insert into deals (organization_id, client_id, pipeline_id, name) values ($1, $2, $3, 'x')`, [orgB, A.client, B.pipeline]],
+      update: () => [`update deals set client_id = $1 where id = $2`, [A.client, B.deal]],
+    },
+    {
+      name: 'affaire → pipeline',
+      insert: () => [`insert into deals (organization_id, client_id, pipeline_id, name) values ($1, $2, $3, 'x')`, [orgB, B.client, A.pipeline]],
+      update: () => [`update deals set pipeline_id = $1 where id = $2`, [A.pipeline, B.deal]],
     },
   ];
 

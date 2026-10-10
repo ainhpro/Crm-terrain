@@ -49,4 +49,15 @@ export interface Action {
  */
 export type StepState = 'done' | 'implied' | 'scheduled' | 'active' | 'none';
 
-export type ProgressStatus = 'finished' | 'late' | 'in_progress' | 'not_started';
+export type ProgressStatus = 'finished' | 'late' | 'in_progress' | 'not_started' | 'closed';
+
+export const DEAL_STATUSES = ['open', 'won', 'lost', 'abandoned'] as const;
+export type DealStatus = (typeof DEAL_STATUSES)[number];
+
+/** Une affaire : un projet chez un client qui parcourt un pipeline, avec ses propres actions. */
+export interface Deal {
+  id: string;
+  pipeline: Pipeline;
+  status: DealStatus;
+  actions: Action[];
+}

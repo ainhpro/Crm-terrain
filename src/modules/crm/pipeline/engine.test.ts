@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   clientProgress,
   computeStepStates,
+  dealProgress,
   isActionImplied,
   isActionLate,
-  pipelineProgress,
+  isActionOpen,
 } from './engine';
-import type { Action, ActionStatus, Pipeline } from './types';
+import { buildActionBuckets } from '../actions/buckets';
+import type { Action, ActionStatus, Deal, DealStatus, Pipeline } from './types';
 
 const TODAY = '2026-10-10';
 
@@ -105,39 +107,79 @@ describe('isActionLate', () => {
   });
 });
 
-describe('pipelineProgress', () => {
+const deal = (pipeline: Pipeline, actions: Action[], status: DealStatus = 'open'): Deal => ({
+  id: `d${++seq}`,
+  pipeline,
+  status,
+  actions,
+});
+
+describe('dealProgress', () => {
   it('finished quand la dernière étape est faite ou déduite', () => {
-    expect(pipelineProgress(MAJ, [action('FACQ_MAJ.placement', 'done')], TODAY)).toBe('finished');
+    expect(dealProgress(deal(MAJ, [action('FACQ_MAJ.placement', 'done')]), TODAY)).toBe('finished');
   });
-  it('late quand une action du client est en retard', () => {
-    expect(pipelineProgress(MAJ, [action('FACQ_MAJ.rdv', 'todo', '2026-10-01')], TODAY)).toBe('late');
+  it('late quand une action réellement ouverte est en retard', () => {
+    expect(dealProgress(deal(MAJ, [action('FACQ_MAJ.rdv', 'todo', '2026-10-01')]), TODAY)).toBe('late');
   });
   it('in_progress quand une étape a démarré', () => {
-    expect(pipelineProgress(MAJ, [action('FACQ_MAJ.rdv', 'todo', '2026-10-20')], TODAY)).toBe('in_progress');
+    expect(dealProgress(deal(MAJ, [action('FACQ_MAJ.rdv', 'todo', '2026-10-20')]), TODAY)).toBe('in_progress');
   });
   it('not_started sans action', () => {
-    expect(pipelineProgress(MAJ, [], TODAY)).toBe('not_started');
+    expect(dealProgress(deal(MAJ, []), TODAY)).toBe('not_started');
   });
   it('SAMO avec seulement le tarif par défaut est en cours, formation terminée = finished', () => {
-    expect(pipelineProgress(SAMO, [], TODAY)).toBe('in_progress');
-    expect(pipelineProgress(SAMO, [action('SAMO.formation', 'done')], TODAY)).toBe('finished');
+    expect(dealProgress(deal(SAMO, []), TODAY)).toBe('in_progress');
+    expect(dealProgress(deal(SAMO, [action('SAMO.formation', 'done')]), TODAY)).toBe('finished');
+  });
+  it('gagnée = finished ; perdue ou abandonnée = closed, même avec un retard', () => {
+    const late = [action('FACQ_MAJ.rdv', 'todo', '2026-09-01')];
+    expect(dealProgress(deal(MAJ, late, 'won'), TODAY)).toBe('finished');
+    expect(dealProgress(deal(MAJ, late, 'lost'), TODAY)).toBe('closed');
+    expect(dealProgress(deal(MAJ, late, 'abandoned'), TODAY)).toBe('closed');
   });
 });
 
-describe('clientProgress (pipelines indépendants)', () => {
-  it('finished seulement si tous les pipelines sont finis', () => {
-    const actions = [action('FACQ_MAJ.placement', 'done')];
-    expect(clientProgress([MAJ, TAR], actions, TODAY)).toBe('in_progress');
-    actions.push(action('FACQ_TAR.formation_parois', 'done'));
-    expect(clientProgress([MAJ, TAR], actions, TODAY)).toBe('finished');
+describe('P01 : une seule définition de « réellement ouverte »', () => {
+  it("RDV en retard puis offre faite : ni urgence, ni retard sur l'affaire", () => {
+    const rdv = action('FACQ_MAJ.rdv', 'todo', '2026-10-01');
+    const actions = [rdv, action('FACQ_MAJ.offre', 'done')];
+    const d = deal(MAJ, actions);
+    expect(computeStepStates(MAJ, actions)).toEqual(['implied', 'done', 'none', 'none']);
+    expect(isActionOpen(rdv, MAJ, actions)).toBe(false);
+    expect(buildActionBuckets(actions, TODAY, (a) => !isActionOpen(a, MAJ, actions)).late).toEqual([]);
+    expect(dealProgress(d, TODAY)).toBe('in_progress');
   });
-  it('late si un pipeline est en retard', () => {
-    expect(clientProgress([MAJ, TAR], [action('FACQ_TAR.formation_meubles', 'todo', '2026-09-01')], TODAY)).toBe(
-      'late',
-    );
+});
+
+describe('P02 : affaires indépendantes chez un même client', () => {
+  it("un placement terminé en 2025 ne termine pas l'affaire 2026", () => {
+    const old = deal(MAJ, [action('FACQ_MAJ.placement', 'done')], 'won');
+    const current = deal(MAJ, [action('FACQ_MAJ.rdv', 'appointment_set', '2026-10-20')]);
+    expect(dealProgress(old, TODAY)).toBe('finished');
+    expect(dealProgress(current, TODAY)).toBe('in_progress');
+    expect(clientProgress([old, current], [], TODAY)).toBe('in_progress');
   });
-  it('not_started si aucun pipeline démarré', () => {
-    expect(clientProgress([MAJ, TAR], [], TODAY)).toBe('not_started');
+});
+
+describe('clientProgress', () => {
+  it('finished seulement si toutes les affaires actives sont finies', () => {
+    const maj = deal(MAJ, [action('FACQ_MAJ.placement', 'done')]);
+    const tar = deal(TAR, []);
+    expect(clientProgress([maj, tar], [], TODAY)).toBe('in_progress');
+    const tarDone = deal(TAR, [action('FACQ_TAR.formation_parois', 'done')]);
+    expect(clientProgress([maj, tarDone], [], TODAY)).toBe('finished');
+  });
+  it("late si une affaire est en retard, ou une action hors affaire", () => {
+    expect(clientProgress([deal(TAR, [action('FACQ_TAR.formation_meubles', 'todo', '2026-09-01')])], [], TODAY)).toBe('late');
+    expect(clientProgress([], [action(null, 'todo', '2026-09-01')], TODAY)).toBe('late');
+  });
+  it('les affaires closes sont ignorées', () => {
+    const lost = deal(MAJ, [action('FACQ_MAJ.rdv', 'todo', '2026-09-01')], 'lost');
+    expect(clientProgress([lost], [], TODAY)).toBe('closed');
+    expect(clientProgress([lost, deal(TAR, [])], [], TODAY)).toBe('not_started');
+  });
+  it('not_started sans affaire ni action', () => {
+    expect(clientProgress([], [], TODAY)).toBe('not_started');
   });
 });
 
@@ -145,12 +187,22 @@ describe('isActionImplied', () => {
   it("vrai pour une action ouverte sur une étape validée par déduction", () => {
     const open = action('FACQ_MAJ.rdv', 'todo', '2026-09-01');
     const actions = [open, action('FACQ_MAJ.offre', 'done')];
-    expect(isActionImplied(open, [MAJ, TAR], actions)).toBe(true);
+    expect(isActionImplied(open, MAJ, actions)).toBe(true);
   });
   it('faux pour une action sans étape ou sur une étape non déduite', () => {
     const note = action(null, 'todo');
     const rdv = action('FACQ_MAJ.rdv', 'todo');
-    expect(isActionImplied(note, [MAJ], [note])).toBe(false);
-    expect(isActionImplied(rdv, [MAJ], [rdv])).toBe(false);
+    expect(isActionImplied(note, MAJ, [note])).toBe(false);
+    expect(isActionImplied(rdv, MAJ, [rdv])).toBe(false);
+  });
+});
+
+describe('P03 : ordre stable', () => {
+  it('deux étapes à la même position sont départagées par leur code, pas par l’ordre reçu', () => {
+    const p1: Pipeline = { id: 'P', code: 'P', steps: [
+      { id: 'P.b', code: 'b', order: 0 }, { id: 'P.a', code: 'a', order: 0 } ] };
+    const p2: Pipeline = { ...p1, steps: [...p1.steps].reverse() };
+    const acts = [action('P.b', 'done')];
+    expect(computeStepStates(p1, acts)).toEqual(computeStepStates(p2, acts));
   });
 });

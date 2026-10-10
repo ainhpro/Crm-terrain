@@ -70,6 +70,7 @@ export interface OrgRows {
   contact: string;
   pipeline: string;
   step: string;
+  deal: string;
   action: string;
 }
 
@@ -100,11 +101,15 @@ export async function seedOrg(db: pg.Client, ownerId: string, orgId: string, lab
         `insert into pipeline_steps (organization_id, pipeline_id, code, label, position) values ($1, $2, 'rdv', 'RDV', 0) returning id`,
         [orgId, pipeline],
       );
-      const action = await one(
-        `insert into actions (organization_id, client_id, step_id, status, due_date) values ($1, $2, $3, 'todo', '2026-10-20') returning id`,
-        [orgId, client, step],
+      const deal = await one(
+        `insert into deals (organization_id, client_id, pipeline_id, name) values ($1, $2, $3, 'MAJ 2026') returning id`,
+        [orgId, client, pipeline],
       );
-      return { group, client, contact, pipeline, step, action };
+      const action = await one(
+        `insert into actions (organization_id, client_id, deal_id, step_id, status, due_date) values ($1, $2, $3, $4, 'todo', '2026-10-20') returning id`,
+        [orgId, client, deal, step],
+      );
+      return { group, client, contact, pipeline, step, deal, action };
     },
     { commit: true },
   );
