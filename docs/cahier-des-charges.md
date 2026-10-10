@@ -126,7 +126,11 @@ Montants HTVA, calculés par le code, jamais par l'IA. Ce n'est pas une facture 
    - en photographiant la notice de pose (ou l'étiquette du produit) : l'IA lit la référence et la désignation ;
    - ou en la dictant (« j'ai besoin de la référence 4512-08 »), dans le rapport vocal ou à part ;
    - il vérifie référence, désignation, quantité et fournisseur (usine, fabricant), puis envoie la commande par email au fournisseur, avec le numéro de demande et les photos utiles. Rien ne part sans sa validation.
-6. **Suivi du dossier** : tant qu'une pièce manque, l'intervention reste ouverte « en attente de pièce ». Le dossier montre chaque étape avec sa date (demande reçue, intervention, pièce commandée, pièce reçue, retour chez le client, clôturé) et depuis combien de jours on attend. Les pièces en attente apparaissent sur l'écran du jour et dans l'email du matin ; relance proposée au fournisseur après un délai réglable. Quand le technicien indique « pièce reçue », l'application propose un créneau de retour au client ; le dossier est clôturé après ce retour.
+6. **Suivi du dossier** : tant qu'une pièce manque, l'intervention reste ouverte « en attente de pièce ». Le dossier montre chaque étape avec sa date (demande reçue, intervention, pièce commandée, pièce reçue, retour chez le client, clôturé) et depuis combien de jours on attend. Les pièces en attente apparaissent sur l'écran du jour et dans l'email du matin ; relance proposée au fournisseur après un délai réglable. La réception se signale de deux façons, au choix :
+   - le technicien appuie lui-même sur « Pièce reçue » ;
+   - un email arrive (bureau du fournisseur, Culligan pour dire que la machine est livrée, ou toute autre personne) et le technicien l'intègre au dossier (transfert vers l'adresse de l'application ou bouton « Intégrer cet email »). L'application rattache l'email au bon dossier grâce au numéro de ticket (ou au client), comprend ce qu'il annonce (pièce disponible, matériel livré…) et propose la mise à jour ; le technicien confirme.
+   Ensuite, l'application propose un créneau de retour ou d'installation au client ; le dossier est clôturé après ce passage.
+   Plus généralement, tout email lié à un dossier (complément, relance, livraison) peut y être intégré et apparaît dans son historique.
 7. **Bon d'intervention** (PDF) : validé par le technicien, envoyé au client, et transmis en un geste à l'outil de facturation. Les durées sont calculées par le code, jamais par l'IA ; l'IA ne fixe aucun prix.
 
 ### 7. Planning de tournées (V2)
@@ -320,6 +324,7 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 - Nouvelle présentation sobre et professionnelle (maquette), pas celle du prototype.
 - PC : application dans le navigateur, plus copie automatique des rapports PDF dans OneDrive et Google Drive.
 - Destinataires des rapports choisis à chaque envoi : bureau du fournisseur (adresse par service), client final, ou les deux.
+- Réception d'une pièce ou d'un matériel : bouton « Pièce reçue » ou email intégré au dossier (reconnu par le numéro de ticket), toujours confirmé par le technicien.
 
 ## Questions ouvertes
 
