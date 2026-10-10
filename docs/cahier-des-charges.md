@@ -192,6 +192,15 @@ Ces règles complètent et, en cas de conflit, remplacent le 6 bis. Le module n'
 **Langue**
 - La langue du rapport et de l'email suit celle du **destinataire** (client NL, donneur d'ordre FR…), indépendamment de la langue de l'interface du technicien. Le document final est montré avant validation.
 
+**Options activables par technicien**
+- Chaque technicien n'utilise que ce dont il a besoin. Exemple : l'un fait SAV et showrooms, l'autre seulement des showrooms ; le second ne voit ni la garantie ni les pièces à commander.
+- Deux niveaux, réglables à l'accueil puis dans Réglages :
+  - **types d'intervention** attribués à chaque technicien (SAV, prise de mesure, placement showroom, types libres) ;
+  - **options** : pièces à commander, prix sur le rapport, signature du client, garantie, numéros de tickets, emails entrants, copies OneDrive / Google Drive.
+- Valeurs par défaut déduites des types choisis (showroom seul → pas de garantie ni de pièces) ; le technicien peut décocher lui-même ; le propriétaire du compte peut régler chaque technicien de son équipe.
+- Désactiver une option masque ses écrans et ses champs, sans effacer les données déjà saisies ; la réactiver les fait réapparaître.
+- *Proposition* : en V1, seuls les types d'intervention et 4 options (pièces, prix, signature, garantie) ; le reste dans un deuxième temps.
+
 **Accueil technicien**
 - Après le choix du métier, le technicien peut **créer ou intégrer tout de suite sa première demande**, sans importer de fichier clients ni tout régler. Types d'intervention, donneurs d'ordre et coordonnées de l'entreprise se complètent au fil de l'eau (proposés au moment où ils servent). L'import / ajout de clients reste le premier écran du commercial.
 
@@ -276,6 +285,7 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 | visit_workers | passage, intervenant, arrivée, départ, pauses | Temps par intervenant |
 | visit_media | passage, fichier privé, moment (avant, pièce, après, notice, article abîmé) | Photos et documents |
 | part_needs, part_orders, part_receipts | besoin ; envoi identifié au fournisseur ; réception (quantité, date) | Pièces à commander et leur suivi |
+| member_settings | organisation, utilisateur, profil (commercial, technicien), types d'intervention attribués, options activées | Préférences et options de chaque membre |
 | report_versions | passage, numéro de version, contenu, taux, arrondi, TVA, montant figé, signature, statut (brouillon, validé, envoyé) | Rapports versionnés |
 | outbound_messages | version, destinataire, canal, identifiant d'opération, état | File d'envois (emails, facturation, clouds) |
 | inbound_messages | adresse de réception du compte, empreinte, dossier proposé, état de revue | Emails reçus et rattachements |
@@ -398,6 +408,7 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 - PC : application dans le navigateur, plus copie automatique des rapports PDF dans OneDrive et Google Drive.
 - Identité de l'entreprise (logo, coordonnées, TVA, IBAN, conditions) saisie une fois et imprimée sur tous les rapports et emails.
 - Pipelines suivis par affaire (plusieurs affaires possibles chez un même client).
+- Options activables par technicien (types d'intervention attribués, options pièces, prix, signature, garantie…), réglées à l'accueil puis dans Réglages, aussi par le propriétaire pour son équipe.
 - Relecture du 10 octobre intégrée (§ 6 ter) : dossier et passages, temps par intervenant, tickets par émetteur, imprévus, versions figées, hors réseau, envois sans doublon, fichiers privés, langue du destinataire, accueil technicien rapide.
 - Destinataires des rapports choisis à chaque envoi : bureau du fournisseur (adresse par service), client final, ou les deux.
 - Réception d'une pièce ou d'un matériel : bouton « Pièce reçue » ou email intégré au dossier (reconnu par le numéro de ticket), toujours confirmé par le technicien.
