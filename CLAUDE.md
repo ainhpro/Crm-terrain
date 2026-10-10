@@ -14,7 +14,7 @@ Tous les modules partagent le même fichier clients (organisations, clients, gro
 | Module | Dossier | Statut |
 |---|---|---|
 | CRM terrain (socle) | `src/modules/crm` | **En cours — V1** |
-| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (types d'intervention et donneurs d'ordre configurables, demande depuis un email, photos, heures, pièces à commander et suivi, bon d'intervention envoyé automatiquement au donneur d'ordre après validation) |
+| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (types d'intervention et donneurs d'ordre configurables, demande depuis un email, photos, heures, pièces à commander et suivi, rapport « fait / à commander / à faire » avec prix à l'heure ou au forfait, email préparé automatiquement au donneur d'ordre après validation, dossiers synchronisés téléphone et PC, recherche par numéro de ticket) |
 | Prospection | `src/modules/prospection` | Prévu (listes, séquences d'emails, RGPD) |
 | Faisabilité d'offres | `src/modules/offres` | Prévu (à spécifier : catalogue importé, offre PDF, prix calculés par le code) |
 | Route (tournées, notes de frais) | `src/modules/route` | Prévu (V2) |
@@ -98,4 +98,4 @@ docs/                    cahier des charges, prototype, analyses
 
 ## Questions ouvertes
 
-Nom du produit et domaine · outils de facturation à connecter en premier · SMS ou email pour prévenir le client · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».
+Nom du produit et domaine · copie des rapports PDF dans un dossier du PC ou non · outils de facturation à connecter en premier · SMS ou email pour prévenir le client · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».

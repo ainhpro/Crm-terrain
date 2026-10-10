@@ -97,9 +97,22 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 
 - **Types d'intervention** : liste par compte, avec des modèles proposés (SAV, prise de mesure, placement showroom) et des types libres (ex. « Intervention Culligan »). Chaque type peut avoir ses propres champs (garantie pour un SAV, mesures pour une prise de mesure, produits installés pour un placement).
 - **Donneurs d'ordre** : beaucoup de techniciens sont indépendants et travaillent pour plusieurs fournisseurs ou marques. Pour chacun : nom, adresse(s) email où envoyer les rapports, envoi automatique oui/non, type d'intervention par défaut. « Client particulier » reste possible sans donneur d'ordre.
-- **Numéro d'intervention facultatif** : jamais obligatoire ; lu dans l'objet du mail quand il existe, sinon saisi ou laissé vide.
+- **Numéros de tickets facultatifs** : une intervention peut porter un ou plusieurs numéros de tickets (ceux du donneur d'ordre). Jamais obligatoires ; lus dans l'objet du mail quand ils existent, sinon saisis ou laissés vides.
 
-**Placement showroom** : le technicien photographie les produits installés (et, s'il veut, leurs références) ; le rapport de placement part au donneur d'ordre et au showroom après validation.
+**Placement showroom** : le technicien photographie les produits installés et note les numéros de tickets (facultatifs) ; le rapport de placement part au donneur d'ordre et au showroom après validation.
+
+**Lignes à commander** : chaque besoin est une ligne avec une photo, soit de la notice de pose (référence lue automatiquement), soit de l'article abîmé (meuble ou autre, sans référence si elle est inconnue), une quantité et une remarque dictée ou écrite.
+
+**Rapport clair pour le destinataire** : trois parties séparées, « Fait », « À commander », « À faire ensuite », plus heures, photos, tickets et signature.
+
+**Prix sur le rapport** (au choix par intervention, valeur par défaut par type ou par donneur d'ordre) :
+- à l'heure : taux horaire × durée entre l'arrivée et le départ (arrondi réglable) ;
+- au forfait : montant saisi pour l'intervention.
+Montants HTVA, calculés par le code, jamais par l'IA. Ce n'est pas une facture : le montant est repris par l'outil de facturation.
+
+**Email automatique** : à la validation du rapport, l'email au donneur d'ordre est rédigé automatiquement (objet avec le numéro de ticket, résumé, lignes à commander, remarques du technicien, rapport PDF et photos en pièces jointes). Le technicien peut le relire et le modifier, puis l'envoie.
+
+**Dossiers synchronisés et recherche** : tous les rapports et dossiers sont les mêmes sur le téléphone et sur le PC (même compte, synchronisation automatique). Recherche par numéro de ticket, client, adresse, référence de pièce ou date ; chaque dossier garde son historique complet (demande, rapports, emails envoyés, commandes, photos).
 
 **Envoi automatique** : une fois le bon d'intervention validé par le technicien (un geste), il part sans autre action au donneur d'ordre, au client s'il le faut et vers la facturation. Aucun envoi sans cette validation.
 
@@ -185,10 +198,10 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 | tasks | client_id, report_id facultatif, texte, échéance, statut | Les choses à faire |
 | intervention_types | nom, champs propres, ordre | Types d'intervention du compte (SAV, prise de mesure, placement showroom…) |
 | principals | nom, emails des rapports, envoi automatique, type par défaut | Donneurs d'ordre (fournisseurs, marques) pour qui le technicien intervient |
-| interventions | client_id, type_id, principal_id (facultatif), numéro d'intervention externe (facultatif, unique par compte et donneur d'ordre), demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut (planifiée, en cours, en attente de pièce, retour à planifier, clôturée), rapport, signature_url | Les interventions du technicien |
+| interventions | client_id, type_id, principal_id (facultatif), numéros de tickets (facultatifs, plusieurs possibles, recherchables), mode de prix (heure ou forfait), taux horaire ou forfait, demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut (planifiée, en cours, en attente de pièce, retour à planifier, clôturée), rapport, signature_url | Les interventions du technicien |
 | intervention_photos | intervention_id, photo_url, moment (avant, pièce, après) | Photos d'intervention |
 | intervention_parts | intervention_id, désignation, référence, quantité | Pièces utilisées (sans prix) |
-| part_orders | intervention_id, référence, désignation, quantité, fournisseur, photo de la notice, statut (à commander, commandée, reçue), dates de commande et de réception, n° de commande fournisseur | Pièces à commander et leur suivi |
+| part_orders | intervention_id, référence (facultative), désignation, quantité, remarque, fournisseur, photo (notice de pose ou article abîmé), statut (à commander, commandée, reçue), dates de commande et de réception, n° de commande fournisseur | Pièces à commander et leur suivi |
 | follow_up_rules | cible (catégorie ou événement), délai en jours | Les règles de relance |
 | expenses | date, fournisseur, montant, TVA, catégorie, photo_url | Notes de frais (V2) |
 | catalog_items | référence, désignation, prix, unité, remise | Catalogue importé (V3) |
@@ -314,3 +327,4 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 - Fournisseur de transcription vocale à retenir.
 - Outils de facturation à connecter en premier (Teamleader, Odoo, autre ?) et format d'envoi du bon d'intervention.
 - Prévenir le client du rendez-vous : email seulement, ou aussi SMS ?
+- Synchronisation PC : l'application dans le navigateur du PC suffit-elle, ou faut-il aussi une copie automatique des rapports PDF dans un dossier (OneDrive, Google Drive) ?
