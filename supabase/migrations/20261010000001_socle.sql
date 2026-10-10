@@ -5,8 +5,14 @@
 -- * Les liens entre tables passent par des clés composites (organization_id, id) :
 --   impossible de rattacher une ligne à une ligne d'un autre compte.
 -- * Le statut de pipeline n'est jamais stocké ; il est recalculé à partir des actions.
+-- * Droits minimaux : tout est d'abord retiré à anon et authenticated, puis seuls les droits
+--   nécessaires sont rendus (fin de fichier). anon n'a accès à rien.
+-- * On n'entre dans une organisation que par create_organization() ou par une invitation
+--   acceptée par la personne invitée (identité Auth vérifiée).
 
-create extension if not exists pgcrypto;
+-- Comme sur Supabase, les extensions vivent dans le schéma « extensions ».
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 
 -- ─────────────────────────────────────────────────────────────
 -- Organisations et membres
@@ -104,6 +110,126 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- L'email du profil n'est qu'une copie de l'email Auth (non modifiable par l'utilisateur).
+create function public.sync_profile_email()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.profiles set email = coalesce(new.email, '') where id = new.id;
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_email_changed
+  after update of email on auth.users
+  for each row when (new.email is distinct from old.email)
+  execute function public.sync_profile_email();
+
+-- Une organisation garde toujours au moins un propriétaire.
+-- Seule exception : la suppression de l'organisation elle-même (cascade).
+create function public.protect_last_owner()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if old.role <> 'owner' or (tg_op = 'UPDATE' and new.role = 'owner') then
+    return coalesce(new, old);
+  end if;
+  -- Verrou sur l'organisation : deux départs simultanés ne peuvent pas contourner la règle.
+  perform 1 from public.organizations where id = old.organization_id for update;
+  if not found then
+    return coalesce(new, old); -- organisation en cours de suppression
+  end if;
+  if not exists (
+    select 1 from public.organization_members m
+    where m.organization_id = old.organization_id and m.role = 'owner' and m.user_id <> old.user_id
+  ) then
+    raise exception 'last owner cannot leave the organization' using errcode = 'P0001';
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
+create trigger organization_members_last_owner
+  before delete or update of role on public.organization_members
+  for each row execute function public.protect_last_owner();
+
+-- ─────────────────────────────────────────────────────────────
+-- Invitations
+-- ─────────────────────────────────────────────────────────────
+
+create table public.invitations (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations (id) on delete cascade,
+  email text not null check (email = lower(trim(email)) and email like '%@%'),
+  role text not null default 'member' check (role in ('owner', 'member')),
+  -- Seule l'empreinte du jeton est stockée ; le jeton part par email depuis le serveur.
+  token_hash bytea not null unique,
+  invited_by uuid references auth.users (id) on delete set null,
+  expires_at timestamptz not null default now() + interval '7 days',
+  accepted_at timestamptz,
+  accepted_by uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index invitations_org_idx on public.invitations (organization_id);
+
+-- Réservé aux propriétaires. Renvoie le jeton en clair, une seule fois.
+create function public.invite_member(org uuid, invitee_email text, invitee_role text default 'member')
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  token text := encode(extensions.gen_random_bytes(32), 'hex');
+begin
+  if not public.is_owner(org) then
+    raise exception 'only an owner can invite' using errcode = '42501';
+  end if;
+  insert into public.invitations (organization_id, email, role, token_hash, invited_by)
+  values (org, lower(trim(invitee_email)), invitee_role, extensions.digest(token, 'sha256'), auth.uid());
+  return token;
+end;
+$$;
+
+-- La personne connectée accepte : son email Auth confirmé doit être celui de l'invitation.
+create function public.accept_invitation(invitation_token text)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  inv public.invitations;
+  caller_email text;
+begin
+  select lower(u.email) into caller_email
+  from auth.users u
+  where u.id = auth.uid() and u.email_confirmed_at is not null;
+
+  select * into inv from public.invitations i
+  where i.token_hash = extensions.digest(invitation_token, 'sha256')
+    and i.accepted_at is null and i.expires_at > now()
+  for update;
+
+  if caller_email is null or inv.id is null or inv.email <> caller_email then
+    -- Même message dans tous les cas : ne rien révéler sur l'invitation.
+    raise exception 'invalid or expired invitation' using errcode = 'P0001';
+  end if;
+
+  insert into public.organization_members (organization_id, user_id, role)
+  values (inv.organization_id, auth.uid(), inv.role)
+  on conflict (organization_id, user_id) do nothing;
+  update public.invitations set accepted_at = now(), accepted_by = auth.uid() where id = inv.id;
+  return inv.organization_id;
+end;
+$$;
 
 -- ─────────────────────────────────────────────────────────────
 -- Fichier clients
@@ -229,6 +355,28 @@ $$;
 create trigger actions_touch before update on public.actions
   for each row execute function public.touch_updated_at();
 
+-- L'auteur est l'utilisateur connecté, imposé à la création et figé ensuite.
+-- Sans utilisateur (traitement serveur, reprise de données), la valeur fournie est gardée.
+create function public.enforce_action_author()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    if auth.uid() is not null then
+      new.created_by := auth.uid();
+    end if;
+  else
+    new.created_by := old.created_by;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger actions_author before insert or update on public.actions
+  for each row execute function public.enforce_action_author();
+
 -- ─────────────────────────────────────────────────────────────
 -- Row Level Security
 -- ─────────────────────────────────────────────────────────────
@@ -257,10 +405,14 @@ create policy profiles_update on public.profiles
 
 create policy members_select on public.organization_members
   for select to authenticated using (public.is_member(organization_id));
-create policy members_insert on public.organization_members
-  for insert to authenticated with check (public.is_owner(organization_id));
+-- Pas d'insertion directe : create_organization() ou accept_invitation().
+-- Un propriétaire retire un membre ; chacun peut partir (sauf le dernier propriétaire, voir déclencheur).
 create policy members_delete on public.organization_members
-  for delete to authenticated using (public.is_owner(organization_id));
+  for delete to authenticated using (public.is_owner(organization_id) or user_id = auth.uid());
+
+alter table public.invitations enable row level security;
+create policy invitations_select on public.invitations
+  for select to authenticated using (public.is_owner(organization_id));
 
 -- Tables métier : un membre a tous les droits sur les données de son organisation, et seulement celles-là.
 do $$
@@ -280,15 +432,31 @@ begin
 end;
 $$;
 
--- Droits de base (RLS filtre ensuite les lignes). Le rôle anon n'a accès à rien.
+-- ─────────────────────────────────────────────────────────────
+-- Droits : tout retirer, puis rendre le strict nécessaire (la RLS filtre ensuite les lignes).
+-- Supabase accorde par défaut des droits larges à anon et authenticated : on ne s'y fie pas.
+-- ─────────────────────────────────────────────────────────────
+
+revoke all on all tables in schema public from public, anon, authenticated;
+revoke all on all functions in schema public from public, anon, authenticated;
+
 grant usage on schema public to authenticated;
-grant select, update on public.organizations to authenticated;
-grant select, update on public.profiles to authenticated;
-grant select, insert, delete on public.organization_members to authenticated;
+
+grant select on public.organizations to authenticated;
+grant update (name, language) on public.organizations to authenticated; -- plan et modules : traitement d'abonnement uniquement
+grant select on public.profiles to authenticated;
+grant update (full_name, language) on public.profiles to authenticated; -- email : copie d'Auth
+grant select, delete on public.organization_members to authenticated;
+grant select (id, organization_id, email, role, invited_by, expires_at, accepted_at, accepted_by, created_at)
+  on public.invitations to authenticated; -- jamais token_hash
 grant select, insert, update, delete on
   public.client_groups, public.clients, public.contacts,
   public.pipelines, public.pipeline_steps, public.actions
   to authenticated;
-revoke all on function public.create_organization(text, text) from public, anon;
-grant execute on function public.create_organization(text, text) to authenticated;
-grant execute on function public.is_member(uuid), public.is_owner(uuid) to authenticated;
+
+grant execute on function
+  public.is_member(uuid), public.is_owner(uuid),
+  public.create_organization(text, text),
+  public.invite_member(uuid, text, text),
+  public.accept_invitation(text)
+  to authenticated;

@@ -29,7 +29,8 @@ export function resolveLocale(cookieValue: string | undefined, acceptLanguage: s
       const q = params.find((p) => p.trim().startsWith('q='));
       return { lang: tag.toLowerCase().split('-')[0], q: q ? Number(q.trim().slice(2)) : 1 };
     })
-    .filter((x) => x.lang && !Number.isNaN(x.q))
+    // q=0 signifie « refusé » ; une valeur hors 0–1 est invalide.
+    .filter((x) => x.lang && x.q > 0 && x.q <= 1)
     .sort((x, y) => y.q - x.q);
   return ranked.map((x) => x.lang).find(isLocale) ?? DEFAULT_LOCALE;
 }

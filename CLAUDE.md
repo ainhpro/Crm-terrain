@@ -43,7 +43,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 ## Règles non négociables
 
 1. **Isolation par compte** : toute table porte `organization_id`, protégée par Row Level Security Supabase. Chaque nouvelle table reçoit sa politique RLS et un test d'isolation.
-2. **Le serveur est le seul intermédiaire** : le téléphone ne contacte jamais directement l'IA ni les fournisseurs. Clés d'API uniquement côté serveur (jamais de secret en `NEXT_PUBLIC_`).
+2. **Le serveur est le seul intermédiaire** : le téléphone ne contacte jamais directement l'IA ni les fournisseurs. Clés d'API uniquement côté serveur (jamais de secret en `NEXT_PUBLIC_`). Les opérations ordinaires du serveur s'exécutent **avec l'identité de l'utilisateur** (client Supabase avec son jeton) pour que la RLS s'applique ; la clé `service_role` (qui contourne la RLS) est réservée à quelques traitements nommés (abonnement, envois, réception d'emails) qui vérifient eux-mêmes l'organisation.
 3. **Prix, totaux et durées calculés par le code, jamais par l'IA.**
 4. **L'IA ne modifie jamais rien sans validation** de l'utilisateur (rapport vocal, import, catalogue : on propose, l'utilisateur valide).
 5. **Statut de pipeline jamais stocké** : recalculé à partir des actions par `src/modules/crm/pipeline/engine.ts`. Une étape avancée terminée valide les étapes précédentes.
@@ -52,6 +52,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 8. **FR et NL dès la V1** : aucun texte d'interface en dur, tout passe par les fichiers de langue.
 9. **Dates** : jours au format ISO `AAAA-MM-JJ` ; « aujourd'hui » est passé en paramètre aux fonctions métier (testable, pas de décalage de fuseau).
 10. **RGPD** : données en UE autant que possible ; export complet et suppression de compte possibles ; audios supprimables après transcription.
+11. **Droits minimaux en base** : chaque migration retire puis accorde explicitement les droits (jamais de confiance dans les droits par défaut de Supabase) ; on n'entre dans une organisation que par invitation acceptée ; plan et modules ne sont modifiables que par le traitement d'abonnement.
 
 ## Commandes
 
@@ -59,7 +60,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 |---|---|
 | `npm run dev` | Application en local (http://localhost:3000) |
 | `npm test` | Tests unitaires (logique métier, traductions) |
-| `npm run test:db` | Tests d'isolation sur un Postgres jetable (`initdb` local, ou `DATABASE_URL`) |
+| `npm run test:db` | Tests d'isolation sur un Postgres jetable (`initdb` local, ou `TEST_DATABASE_URL` : base au nom unique créée puis supprimée, serveur local exigé ; `DATABASE_URL` n'est jamais utilisé) |
 | `npm run typecheck` / `npm run build` | Vérification TypeScript / build de production |
 
 ## Structure

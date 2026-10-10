@@ -27,18 +27,23 @@ export interface MigratedAction {
   note: string;
   /** Libellé d'origine, conservé pour contrôle et pour les actions non classées. */
   legacyType: string;
+  /** Statut d'origine, tel quel. */
+  legacyStatus: string;
+  /** Anomalies à montrer à l'utilisateur avant import (statut inconnu, date invalide, doublon…). */
+  issues: string[];
 }
 
-const STATUS_MAP: Record<string, ActionStatus> = {
-  'À faire': 'todo',
-  'RDV à fixer': 'appointment_to_set',
-  'RDV fixé': 'appointment_set',
-  'En cours': 'in_progress',
-  'En attente': 'waiting',
-  Relance: 'follow_up',
-  Terminé: 'done',
-  Bloqué: 'blocked',
-};
+// Map (et non objet) : « constructor » ou « __proto__ » ne doivent rien renvoyer.
+const STATUS_MAP = new Map<string, ActionStatus>([
+  ['À faire', 'todo'],
+  ['RDV à fixer', 'appointment_to_set'],
+  ['RDV fixé', 'appointment_set'],
+  ['En cours', 'in_progress'],
+  ['En attente', 'waiting'],
+  ['Relance', 'follow_up'],
+  ['Terminé', 'done'],
+  ['Bloqué', 'blocked'],
+]);
 
 type Rule = { pipeline: string; step: string; patterns: string[] };
 
@@ -80,26 +85,53 @@ export function matchLegacyType(client: string, type: string): { pipelineCode: s
   return rule ? { pipelineCode: rule.pipeline, stepCode: rule.step } : null;
 }
 
-export function mapLegacyStatus(statut: string): ActionStatus {
-  return STATUS_MAP[statut] ?? 'todo';
+/** Statut reconnu, ou null s'il est inconnu (jamais réinterprété en silence). */
+export function mapLegacyStatus(statut: unknown): ActionStatus | null {
+  if (typeof statut !== 'string') return null;
+  return STATUS_MAP.get(statut.normalize('NFC').trim()) ?? null;
 }
 
-export function migratePrototypeBackup(backup: { entries?: PrototypeEntry[] }): MigratedAction[] {
-  return (backup.entries ?? [])
+/** Vrai pour une vraie date du calendrier au format AAAA-MM-JJ (refuse 2026-02-30). */
+export function isValidIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+export function migratePrototypeBackup(backup: unknown): MigratedAction[] {
+  const entries = (backup as { entries?: unknown })?.entries ?? [];
+  if (!Array.isArray(entries)) throw new Error('Sauvegarde invalide : « entries » doit être une liste.');
+
+  const seen = new Set<number>();
+  return (entries as PrototypeEntry[])
     // Le prototype supprimait déjà les entrées de l'ancien client CUIS.
-    .filter((e) => e.client !== 'CUIS')
+    .filter((e) => e?.client !== 'CUIS')
     .map((e) => {
-      const match = matchLegacyType(e.client, e.type);
+      const issues: string[] = [];
+      const type = typeof e.type === 'string' ? e.type : '';
+      const match = matchLegacyType(e.client, type);
+      const status = mapLegacyStatus(e.statut);
+      if (status === null) issues.push(`statut inconnu : « ${String(e.statut)} »`);
+      let date: string | null = null;
+      if (e.date) {
+        if (isValidIsoDate(e.date)) date = e.date;
+        else issues.push(`date invalide : « ${e.date} »`);
+      }
+      if (seen.has(e.id)) issues.push(`identifiant en double : ${e.id}`);
+      seen.add(e.id);
+      if (!match && !type.includes('Suivi')) issues.push('étape non reconnue');
       return {
         legacyId: e.id,
         groupCode: e.client,
         siteName: e.showroom,
         pipelineCode: match?.pipelineCode ?? null,
         stepCode: match?.stepCode ?? null,
-        status: mapLegacyStatus(e.statut),
-        date: e.date ? e.date : null,
+        status: status ?? 'todo',
+        date,
         note: e.note ?? '',
-        legacyType: e.type,
+        legacyType: type,
+        legacyStatus: String(e.statut ?? ''),
+        issues,
       };
     });
 }

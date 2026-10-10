@@ -1,197 +1,158 @@
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { asUser, connect, createUser } from './helpers';
+import { addMember, asUser, connect, createOrg, createUser, type OrgRows, seedOrg, sqlState } from './helpers';
 
-// Isolation des comptes : un utilisateur ne voit, ne modifie et ne relie jamais
-// les données d'une autre organisation. Règle n°1 du CLAUDE.md.
+// Isolation des comptes (règle n°1 du CLAUDE.md) : données présentes dans A et dans B,
+// lecture, écriture et liens croisés testés table par table.
 
-const BUSINESS_TABLES = ['client_groups', 'clients', 'contacts', 'pipelines', 'pipeline_steps', 'actions'];
+const TABLES = ['client_groups', 'clients', 'contacts', 'pipelines', 'pipeline_steps', 'actions'] as const;
+type Table = (typeof TABLES)[number];
+const ROW_KEY: Record<Table, keyof OrgRows> = {
+  client_groups: 'group',
+  clients: 'client',
+  contacts: 'contact',
+  pipelines: 'pipeline',
+  pipeline_steps: 'step',
+  actions: 'action',
+};
 
 let db: pg.Client;
-let alice: string; // propriétaire de l'organisation A
-let bob: string; // propriétaire de l'organisation B
+let alice: string; // propriétaire de A
+let bob: string; // propriétaire de B
+let erin: string; // membre de A et de B
+let dave: string; // connecté, sans organisation
 let orgA: string;
 let orgB: string;
-const a: Record<string, string> = {}; // identifiants des lignes de A
+let A: OrgRows;
+let B: OrgRows;
 
 beforeAll(async () => {
   db = connect();
   await db.connect();
   alice = await createUser(db, 'alice@example.test');
   bob = await createUser(db, 'bob@example.test');
-
-  orgA = await asUser(db, alice, async (q) => {
-    const { rows } = await q(`select public.create_organization('INDA', 'fr') as id`);
-    return rows[0].id;
-  }, { commit: true });
-  orgB = await asUser(db, bob, async (q) => {
-    const { rows } = await q(`select public.create_organization('Concurrent', 'nl') as id`);
-    return rows[0].id;
-  }, { commit: true });
-
-  await asUser(db, alice, async (q) => {
-    const one = async (sql: string, params: unknown[]) => (await q(sql, params)).rows[0].id as string;
-    a.group = await one(`insert into client_groups (organization_id, name) values ($1, 'FACQ') returning id`, [orgA]);
-    a.client = await one(
-      `insert into clients (organization_id, group_id, name, category) values ($1, $2, 'FACQ Geel', 'A') returning id`,
-      [orgA, a.group],
-    );
-    a.contact = await one(
-      `insert into contacts (organization_id, client_id, name) values ($1, $2, 'Responsable') returning id`,
-      [orgA, a.client],
-    );
-    a.pipeline = await one(
-      `insert into pipelines (organization_id, code, name, group_id) values ($1, 'FACQ_MAJ', 'MAJ showroom', $2) returning id`,
-      [orgA, a.group],
-    );
-    a.step = await one(
-      `insert into pipeline_steps (organization_id, pipeline_id, code, label, position) values ($1, $2, 'rdv', 'RDV', 0) returning id`,
-      [orgA, a.pipeline],
-    );
-    a.action = await one(
-      `insert into actions (organization_id, client_id, step_id, status, due_date) values ($1, $2, $3, 'todo', '2026-10-20') returning id`,
-      [orgA, a.client, a.step],
-    );
-  }, { commit: true });
+  erin = await createUser(db, 'erin@example.test');
+  dave = await createUser(db, 'dave@example.test');
+  orgA = await createOrg(db, alice, 'INDA');
+  orgB = await createOrg(db, bob, 'Concurrent');
+  A = await seedOrg(db, alice, orgA, 'A');
+  B = await seedOrg(db, bob, orgB, 'B');
+  await addMember(db, alice, orgA, erin, 'erin@example.test');
+  await addMember(db, bob, orgB, erin, 'erin@example.test');
 });
 
 afterAll(async () => {
   await db.end();
 });
 
+const ids = (q: (s: string) => Promise<pg.QueryResult>, table: string) =>
+  q(`select id from ${table} order by id`).then((r) => r.rows.map((x) => x.id).sort());
+
 describe('lecture', () => {
-  it.each(BUSINESS_TABLES)('Alice voit sa ligne dans %s', async (table) => {
-    const count = await asUser(db, alice, async (q) => (await q(`select count(*)::int as n from ${table}`)).rows[0].n);
-    expect(count).toBe(1);
+  it.each(TABLES)('%s : chacun ne voit que les lignes de ses organisations', async (table) => {
+    const key = ROW_KEY[table];
+    expect(await asUser(db, alice, (q) => ids(q, table))).toEqual([A[key]]);
+    expect(await asUser(db, bob, (q) => ids(q, table))).toEqual([B[key]]);
+    expect(await asUser(db, erin, (q) => ids(q, table))).toEqual([A[key], B[key]].sort());
+    expect(await asUser(db, dave, (q) => ids(q, table))).toEqual([]);
   });
 
-  it.each(BUSINESS_TABLES)("Bob ne voit rien de A dans %s", async (table) => {
-    const count = await asUser(db, bob, async (q) => (await q(`select count(*)::int as n from ${table}`)).rows[0].n);
-    expect(count).toBe(0);
-  });
-
-  it.each([...BUSINESS_TABLES, 'organizations', 'organization_members', 'profiles'])(
-    'un visiteur non connecté ne voit rien dans %s',
+  it.each([...TABLES, 'organizations', 'organization_members', 'profiles', 'invitations'])(
+    '%s : un visiteur non connecté est refusé',
     async (table) => {
-      const count = await asUser(db, null, async (q) => (await q(`select count(*)::int as n from ${table}`)).rows[0].n);
-      expect(count).toBe(0);
+      expect(await sqlState(asUser(db, null, (q) => q(`select * from ${table}`)))).toBe('42501');
     },
   );
-
-  it("chacun ne voit que sa propre organisation et ses membres", async () => {
-    const orgs = await asUser(db, bob, async (q) => (await q('select id from organizations')).rows.map((r) => r.id));
-    expect(orgs).toEqual([orgB]);
-    const members = await asUser(db, bob, async (q) => (await q('select user_id from organization_members')).rows);
-    expect(members).toEqual([{ user_id: bob }]);
-  });
-
-  it("Bob ne voit pas le profil d'Alice", async () => {
-    const ids = await asUser(db, bob, async (q) => (await q('select id from profiles')).rows.map((r) => r.id));
-    expect(ids).toEqual([bob]);
-  });
 });
 
-describe('écriture', () => {
-  it("Bob ne peut pas créer de client dans l'organisation A", async () => {
-    await expect(
-      asUser(db, bob, (q) => q(`insert into clients (organization_id, name) values ($1, 'Intrus')`, [orgA])),
-    ).rejects.toThrow(/row-level security/);
-  });
-
-  it.each(BUSINESS_TABLES)("Bob ne peut ni modifier ni supprimer les lignes de A dans %s", async (table) => {
+describe('écriture croisée', () => {
+  it.each(TABLES)("%s : Bob ne modifie ni ne supprime rien de A", async (table) => {
+    const id = A[ROW_KEY[table]];
     const updated = await asUser(db, bob, async (q) =>
-      (await q(`update ${table} set organization_id = organization_id where organization_id = $1`, [orgA])).rowCount,
+      (await q(`update ${table} set organization_id = organization_id where id = $1`, [id])).rowCount,
     );
-    const deleted = await asUser(db, bob, async (q) =>
-      (await q(`delete from ${table} where organization_id = $1`, [orgA])).rowCount,
-    );
-    expect(updated).toBe(0);
-    expect(deleted).toBe(0);
+    const deleted = await asUser(db, bob, async (q) => (await q(`delete from ${table} where id = $1`, [id])).rowCount);
+    expect([updated, deleted]).toEqual([0, 0]);
+    // La ligne de A est intacte.
+    expect(await asUser(db, alice, (q) => ids(q, table))).toContain(id);
   });
 
-  it("Alice ne peut pas déplacer un client vers l'organisation B", async () => {
-    await expect(
-      asUser(db, alice, (q) => q('update clients set organization_id = $1 where id = $2', [orgB, a.client])),
-    ).rejects.toThrow();
+  it("Bob ne crée rien dans l'organisation A", async () => {
+    expect(
+      await sqlState(asUser(db, bob, (q) => q(`insert into client_groups (organization_id, name) values ($1, 'x')`, [orgA]))),
+    ).toBe('42501');
   });
 
-  it("Bob ne peut pas rattacher un contact de B à un client de A", async () => {
-    await expect(
-      asUser(db, bob, (q) =>
-        q(`insert into contacts (organization_id, client_id, name) values ($1, $2, 'Pirate')`, [orgB, a.client]),
-      ),
-    ).rejects.toThrow(/foreign key/);
-  });
-
-  it("Bob ne peut pas utiliser une étape de pipeline de A dans ses actions", async () => {
-    await expect(
-      asUser(db, bob, async (q) => {
-        const { rows } = await q(`insert into clients (organization_id, name) values ($1, 'Client B') returning id`, [orgB]);
-        await q(`insert into actions (organization_id, client_id, step_id) values ($1, $2, $3)`, [orgB, rows[0].id, a.step]);
-      }),
-    ).rejects.toThrow(/foreign key/);
-  });
-
-  it("Bob ne peut pas s'ajouter comme membre de l'organisation A", async () => {
-    await expect(
-      asUser(db, bob, (q) =>
-        q(`insert into organization_members (organization_id, user_id, role) values ($1, $2, 'owner')`, [orgA, bob]),
-      ),
-    ).rejects.toThrow(/row-level security/);
-  });
-
-  it("Bob ne peut pas renommer l'organisation A", async () => {
-    const n = await asUser(db, bob, async (q) =>
-      (await q(`update organizations set name = 'Piraté' where id = $1`, [orgA])).rowCount,
-    );
-    expect(n).toBe(0);
-  });
-
-  it("personne ne crée d'organisation en direct, seulement via create_organization", async () => {
-    await expect(
-      asUser(db, alice, (q) => q(`insert into organizations (name) values ('Directe')`)),
-    ).rejects.toThrow(/row-level security/);
-  });
-
-  it('un visiteur non connecté ne peut pas créer de compte', async () => {
-    await expect(asUser(db, null, (q) => q(`select public.create_organization('Anonyme')`))).rejects.toThrow();
+  it("Alice ne déplace pas un client vers B", async () => {
+    expect(
+      await sqlState(asUser(db, alice, (q) => q('update clients set organization_id = $1 where id = $2', [orgB, A.client]))),
+    ).toBe('42501');
   });
 });
 
-describe('membres', () => {
-  it("un membre ajouté par la propriétaire voit les données de l'organisation", async () => {
-    const carol = await createUser(db, 'carol@example.test');
-    await asUser(db, alice, (q) =>
-      q(`insert into organization_members (organization_id, user_id) values ($1, $2)`, [orgA, carol]),
-      { commit: true },
-    );
-    const count = await asUser(db, carol, async (q) => (await q('select count(*)::int as n from clients')).rows[0].n);
-    expect(count).toBe(1);
-    // Un simple membre ne peut pas ajouter d'autres membres.
-    const dave = await createUser(db, 'dave@example.test');
-    await expect(
-      asUser(db, carol, (q) =>
-        q(`insert into organization_members (organization_id, user_id) values ($1, $2)`, [orgA, dave]),
-      ),
-    ).rejects.toThrow(/row-level security/);
+describe('liens entre organisations (clés composites)', () => {
+  // Chaque lien : Bob, dans B, tente de pointer vers une ligne de A, à la création puis à la modification.
+  const LINKS: { name: string; insert: () => [string, unknown[]]; update: () => [string, unknown[]] }[] = [
+    {
+      name: 'client → groupe',
+      insert: () => [`insert into clients (organization_id, group_id, name) values ($1, $2, 'x')`, [orgB, A.group]],
+      update: () => [`update clients set group_id = $1 where id = $2`, [A.group, B.client]],
+    },
+    {
+      name: 'contact → client',
+      insert: () => [`insert into contacts (organization_id, client_id, name) values ($1, $2, 'x')`, [orgB, A.client]],
+      update: () => [`update contacts set client_id = $1 where id = $2`, [A.client, B.contact]],
+    },
+    {
+      name: 'pipeline → groupe',
+      insert: () => [`insert into pipelines (organization_id, code, name, group_id) values ($1, 'X', 'x', $2)`, [orgB, A.group]],
+      update: () => [`update pipelines set group_id = $1 where id = $2`, [A.group, B.pipeline]],
+    },
+    {
+      name: 'étape → pipeline',
+      insert: () => [
+        `insert into pipeline_steps (organization_id, pipeline_id, code, label, position) values ($1, $2, 'x', 'x', 5)`,
+        [orgB, A.pipeline],
+      ],
+      update: () => [`update pipeline_steps set pipeline_id = $1, code = 'autre' where id = $2`, [A.pipeline, B.step]],
+    },
+    {
+      name: 'action → client',
+      insert: () => [`insert into actions (organization_id, client_id) values ($1, $2)`, [orgB, A.client]],
+      update: () => [`update actions set client_id = $1 where id = $2`, [A.client, B.action]],
+    },
+    {
+      name: 'action → étape',
+      insert: () => [`insert into actions (organization_id, client_id, step_id) values ($1, $2, $3)`, [orgB, B.client, A.step]],
+      update: () => [`update actions set step_id = $1 where id = $2`, [A.step, B.action]],
+    },
+  ];
+
+  it.each(LINKS)('$name : refusé à la création et à la modification', async (link) => {
+    const [insSql, insParams] = link.insert();
+    const [updSql, updParams] = link.update();
+    expect(await sqlState(asUser(db, bob, (q) => q(insSql, insParams)))).toBe('23503');
+    expect(await sqlState(asUser(db, bob, (q) => q(updSql, updParams)))).toBe('23503');
   });
 });
 
 describe('contraintes', () => {
   it("le code d'étape est un identifiant, pas un libellé", async () => {
-    await expect(
-      asUser(db, alice, (q) =>
-        q(`insert into pipeline_steps (organization_id, pipeline_id, code, label, position) values ($1, $2, 'Offre envoyée', 'Offre', 1)`, [
-          orgA,
-          a.pipeline,
-        ]),
+    expect(
+      await sqlState(
+        asUser(db, alice, (q) =>
+          q(`insert into pipeline_steps (organization_id, pipeline_id, code, label, position) values ($1, $2, 'Offre envoyée', 'Offre', 1)`, [
+            orgA,
+            A.pipeline,
+          ]),
+        ),
       ),
-    ).rejects.toThrow(/check constraint/);
+    ).toBe('23514');
   });
 
   it("refuse un statut d'action inconnu", async () => {
-    await expect(
-      asUser(db, alice, (q) => q(`update actions set status = 'Terminé' where id = $1`, [a.action])),
-    ).rejects.toThrow(/check constraint/);
+    expect(
+      await sqlState(asUser(db, alice, (q) => q(`update actions set status = 'Terminé' where id = $1`, [A.action]))),
+    ).toBe('23514');
   });
 });

@@ -43,13 +43,33 @@ describe('migratePrototypeBackup', () => {
     expect(result).toEqual([
       {
         legacyId: 1, groupCode: 'FACQ', siteName: 'Geel', pipelineCode: 'FACQ_MAJ', stepCode: 'commande',
-        status: 'done', date: null, note: 'ok', legacyType: 'Commande passée',
+        status: 'done', date: null, note: 'ok', legacyType: 'Commande passée', legacyStatus: 'Terminé', issues: [],
       },
       {
         legacyId: 2, groupCode: 'STG', siteName: 'Zele', pipelineCode: null, stepCode: null,
-        status: 'appointment_set', date: '2026-10-12', note: '', legacyType: 'Suivi / Note',
+        status: 'appointment_set', date: '2026-10-12', note: '', legacyType: 'Suivi / Note', legacyStatus: 'RDV fixé', issues: [],
       },
     ]);
+  });
+
+  it('signale statuts inconnus, dates impossibles et doublons au lieu de les masquer', () => {
+    const [a, b, c] = migratePrototypeBackup({
+      entries: [
+        { id: 7, client: 'FACQ', showroom: 'Geel', type: 'Commande', statut: 'Terminé ', date: '2026-02-30' },
+        { id: 7, client: 'FACQ', showroom: 'Geel', type: 'Commande', statut: 'constructor' },
+        { id: 8, client: 'FACQ', showroom: 'Geel', type: 'Commande', statut: '__proto__' },
+      ],
+    });
+    expect(a!.status).toBe('done'); // espace final toléré
+    expect(a!.date).toBeNull();
+    expect(a!.issues).toEqual(['date invalide : « 2026-02-30 »']);
+    expect(b!.issues).toEqual(['statut inconnu : « constructor »', 'identifiant en double : 7']);
+    expect(c!.issues).toEqual(['statut inconnu : « __proto__ »']);
+    expect(c!.legacyStatus).toBe('__proto__');
+  });
+
+  it('refuse une sauvegarde mal formée', () => {
+    expect(() => migratePrototypeBackup({ entries: 'oops' })).toThrow(/liste/);
   });
 
   it('accepte une sauvegarde vide', () => {

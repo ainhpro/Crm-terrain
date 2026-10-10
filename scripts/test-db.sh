@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Lance les tests de base de données sur un Postgres local jetable.
-# - Si DATABASE_URL est défini, l'utilise tel quel (base vide attendue).
+# - Si TEST_DATABASE_URL est défini, crée dessus une base au nom unique, supprimée à la fin
+#   (serveur local exigé, sauf TEST_DB_ALLOW_REMOTE=1). DATABASE_URL n'est jamais utilisé.
 # - Sinon, crée un cluster temporaire (initdb + pg_ctl), le supprime à la fin.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-if [[ -z "${DATABASE_URL:-}" ]]; then
+if [[ -z "${TEST_DATABASE_URL:-}" ]]; then
   PG_BIN="${PG_BIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
-  [[ -x "$PG_BIN/initdb" ]] || { echo "initdb introuvable : installez PostgreSQL ou définissez DATABASE_URL" >&2; exit 1; }
+  [[ -x "$PG_BIN/initdb" ]] || { echo "initdb introuvable : installez PostgreSQL ou définissez TEST_DATABASE_URL" >&2; exit 1; }
 
   TMP="$(mktemp -d)"
   PORT="${PG_TEST_PORT:-54329}"
@@ -28,7 +29,7 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   "${RUN[@]}" "$PG_BIN/initdb" -D "$TMP/data" -U postgres -A trust --no-sync >/dev/null
   "${RUN[@]}" "$PG_BIN/pg_ctl" -D "$TMP/data" -l "$TMP/log" -w \
     -o "-p $PORT -k $TMP -c listen_addresses=localhost -c fsync=off" start >/dev/null
-  export DATABASE_URL="postgres://postgres@localhost:$PORT/postgres"
+  export TEST_DATABASE_URL="postgres://postgres@localhost:$PORT/postgres"
 fi
 
 cd "$ROOT"
