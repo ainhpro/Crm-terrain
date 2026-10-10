@@ -71,6 +71,14 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 - Conservé du prototype : une étape avancée terminée valide automatiquement les étapes précédentes.
 - Les étapes sont reconnues par un identifiant, jamais par le texte du libellé.
 
+**Affaires** (décision du 10 octobre) : un pipeline se suit **par affaire**, pas seulement par client. Une affaire = un projet chez un client (ex. « MAJ showroom 2026 ») qui parcourt un pipeline. Un même client peut avoir plusieurs affaires, passées ou en cours, sur le même pipeline ; terminer l'une ne termine pas les autres. L'avancement d'une affaire est recalculé à partir de ses actions (jamais stocké). Une affaire peut être close (gagnée, perdue, abandonnée) sans passer par toutes les étapes.
+
+Règles de cohérence :
+- une étape a une position unique dans son pipeline ; changer l'ordre se fait en une fois ;
+- une affaire ne peut utiliser qu'un pipeline commun au compte ou propre au groupe du client ;
+- un pipeline ou une étape déjà utilisés ne sont jamais supprimés mais archivés : l'historique reste lisible ;
+- une action ouverte est « réellement ouverte » si elle n'est pas terminée et que son étape n'est pas déjà validée par une étape plus avancée ; cette même définition sert pour les urgences, les retards et le statut.
+
 ### 4. Rapport de visite vocal (V1)
 
 1. Bouton micro sur la fiche client ou sur l'écran d'accueil.
@@ -89,6 +97,7 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 
 - Règles par catégorie de client : A toutes les 6 semaines, B tous les 2 mois, C tous les 3 mois (valeurs réglables).
 - Règles par événement : offre envoyée → relance à J+7, J+14.
+- *Proposition par défaut, à confirmer* : le délai part de la **dernière visite réalisée** (sinon de la date d'import) ; il se compte en jours (6 semaines = 42 jours, 2 mois = 60, 3 mois = 90) ; une relance est un **rappel au commercial** (Actions et email du matin), jamais un email envoyé automatiquement au client.
 - Les relances arrivent dans les Actions et l'email du matin.
 
 ### 6 bis. Interventions technicien (V1)
@@ -134,6 +143,62 @@ Montants HTVA, calculés par le code, jamais par l'IA. Ce n'est pas une facture 
    Ensuite, l'application propose un créneau de retour ou d'installation au client ; le dossier est clôturé après ce passage.
    Plus généralement, tout email lié à un dossier (complément, relance, livraison) peut y être intégré et apparaît dans son historique.
 7. **Bon d'intervention** (PDF) : validé par le technicien, envoyé au client, et transmis en un geste à l'outil de facturation. Les durées sont calculées par le code, jamais par l'IA ; l'IA ne fixe aucun prix.
+
+### 6 ter. Interventions : règles issues de la relecture du 10 octobre
+
+Ces règles complètent et, en cas de conflit, remplacent le 6 bis. Le module n'est pas encore codé.
+
+**Dossier et passages**
+- Un **dossier** porte la demande, le donneur d'ordre, le client final, le lieu, les tickets et le suivi global. Il contient un ou plusieurs **passages** (diagnostic, pose, retour…). Chaque passage a sa planification, ses intervenants, ses heures, ses photos et son rapport. Un retour ne modifie jamais un passage précédent.
+- Les heures se comptent **par passage et par intervenant** (travail à deux, remplacement).
+- Le profil commercial / technicien est une **préférence de chaque utilisateur** (écrans), distincte des modules achetés par le compte et du rôle (propriétaire, membre).
+
+**Personnes et lieux**
+- On distingue **donneur d'ordre** (qui commande l'intervention), **client final** (chez qui), **lieu d'intervention** (une adresse parmi plusieurs possibles), **payeur** (donneur d'ordre, client final ou autre) et **contact sur place**. Le matériel concerné peut être noté (modèle, numéro de série).
+
+**Tickets**
+- Chaque dossier a un identifiant interne permanent. Les numéros de tickets sont enregistrés **avec leur émetteur** (donneur d'ordre) ; un même numéro chez deux donneurs d'ordre désigne deux dossiers différents. Un dossier peut n'avoir aucun ticket ou en avoir plusieurs. Quand un email semble concerner un dossier, le rattachement est **proposé**, jamais fait en silence.
+
+**Imprévus du terrain**
+- État du dossier et état du rendez-vous sont distincts. Issues prévues, avec motif : annulé, client absent, accès impossible, reporté, refus de signature. Un dossier clôturé peut être rouvert. Un rapport peut être validé sans signature (motif obligatoire) et sans email client (aucun destinataire inventé).
+
+**Pièces**
+- On distingue **besoin** (ligne « à commander »), **commande envoyée** (chaque envoi a son identifiant, son fournisseur et sa date) et **réception** (éventuellement partielle). Quantités suivies ; annulation et pièce de remplacement possibles. Le retour chez le client n'est proposé que quand toutes les pièces nécessaires sont reçues.
+
+**Temps et prix** (*propositions par défaut, à confirmer*)
+- Arrivée, départ et pauses sont des horodatages réels, dans le fuseau du compte (Europe/Brussels), corrigeables avec trace. On distingue **présence** et **durée facturable** (présence moins pauses, arrondie au quart d'heure supérieur par défaut, réglable).
+- Le taux, la règle d'arrondi, la TVA et le montant sont **figés** dans la version validée du rapport ; un changement de tarif ne modifie jamais un ancien rapport. Calcul en centimes, par le code.
+- Le document s'adapte au destinataire : le tarif négocié avec un donneur d'ordre n'est **jamais** montré au client final ; pour un particulier qui paie, le montant est affiché **TVA comprise**. Une garantie « probable » proposée par l'IA ne décide jamais qui paie.
+
+**Validation et versions**
+- Avant l'envoi, un récapitulatif montre le contenu, les destinataires et les pièces jointes ; un seul geste « Valider et envoyer ». Un brouillon peut être gardé. La version validée est **figée** (PDF, montant, signature) ; toute correction crée une nouvelle version, l'ancienne reste consultable. La signature du client porte sur une version précise.
+
+**Terrain sans réseau**
+- Dossiers du jour, brouillons, heures, photos et dictées sont gardés sur le téléphone et envoyés quand le réseau revient ; la file d'envoi est visible ; une modification faite en même temps sur le PC est signalée (conflit) au lieu d'être écrasée.
+
+**IA et emails entrants**
+- Tout champ lu par l'IA (référence, quantité, adresse, garantie…) est affiché à côté de sa source (extrait du mail, photo) ; une valeur incertaine est marquée à confirmer ; la saisie à la main reste possible.
+- Un email reçu ne peut jamais, à lui seul, déclencher un envoi, une commande ou un changement de destinataire.
+- Le compte qui reçoit un email est déterminé par **l'adresse de réception propre à ce compte**, jamais par le ticket ou l'expéditeur. Les réceptions sont authentifiées et dédupliquées ; le contenu HTML reçu est affiché isolé et nettoyé.
+
+**Envois**
+- Les emails partent d'un **domaine d'envoi authentifié** de l'application (SPF, DKIM), au nom du technicien, avec réponse vers sa propre adresse (Reply-To) ; plus tard, possibilité de connecter sa boîte.
+- Chaque envoi passe par une **file persistante** avec un identifiant d'opération : une coupure ou un double clic ne provoque jamais de double envoi. Email, commande, facturation et copie cloud sont des envois séparés, chacun avec son état.
+- Copies OneDrive / Google Drive : compte et dossier choisis par le technicien, échecs visibles et reprise possible, chemin fondé sur l'identifiant interne du dossier (pas seulement le ticket).
+
+**Fichiers**
+- Photos, PDF, signatures et audios sont en stockage **privé**, servis par liens temporaires après contrôle d'accès. Leur sauvegarde et leur restauration sont testées à part de la base de données.
+
+**Langue**
+- La langue du rapport et de l'email suit celle du **destinataire** (client NL, donneur d'ordre FR…), indépendamment de la langue de l'interface du technicien. Le document final est montré avant validation.
+
+**Accueil technicien**
+- Après le choix du métier, le technicien peut **créer ou intégrer tout de suite sa première demande**, sans importer de fichier clients ni tout régler. Types d'intervention, donneurs d'ordre et coordonnées de l'entreprise se complètent au fil de l'eau (proposés au moment où ils servent). L'import / ajout de clients reste le premier écran du commercial.
+
+**Facturation et conformité**
+- Le rapport n'est pas une facture. L'application montre ce qui a été transmis à l'outil de facturation, à qui, et ce qui reste à facturer.
+- RGPD : rôles à documenter (le technicien est en principe responsable de traitement pour ses clients, l'application sous-traitant ; le donneur d'ordre selon le contrat), information des personnes photographiées ou citées, durées de conservation par type de donnée, effet d'une suppression sur les copies déjà diffusées (emails, clouds).
+- Flux hors Supabase (IA, transcription, emails, clouds) à cartographier ; la promesse commerciale « hébergé en Europe » est adaptée aux garanties réellement obtenues.
 
 ### 7. Planning de tournées (V2)
 
@@ -196,18 +261,24 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 | client_groups | nom, couleur | Enseignes ou groupes (ex. FACQ, STG, SAMO) |
 | clients | nom, group_id, adresse, lat/lng, catégorie, fréquence, horaires, notes | Les clients et points de vente |
 | contacts | client_id, nom, fonction, email, téléphone | Les personnes chez le client |
-| pipelines | nom, ordre, group_id facultatif | Un pipeline configurable (ex. MAJ showroom) |
+| pipelines | nom, ordre, group_id facultatif, archivé | Un pipeline configurable (ex. MAJ showroom) |
+| deals | client_id, pipeline_id, nom, statut (ouverte, gagnée, perdue, abandonnée), dates | Les affaires : un projet chez un client qui parcourt un pipeline |
 | pipeline_steps | pipeline_id, code, libellé, ordre | Les étapes, reconnues par leur code |
-| actions | client_id, step_id facultatif, type, statut, date, note | Ce qui est fait ou à faire chez un client |
+| actions | client_id, deal_id et step_id facultatifs, type, statut, date, note, auteur | Ce qui est fait ou à faire chez un client |
 | visits | client_id, date, heure, statut, source agenda | Les visites planifiées ou réalisées |
 | visit_reports | visit_id, audio_url, transcription, résumé, validé | Les rapports vocaux |
 | tasks | client_id, report_id facultatif, texte, échéance, statut | Les choses à faire |
 | intervention_types | nom, champs propres, ordre | Types d'intervention du compte (SAV, prise de mesure, placement showroom…) |
-| principals | nom, emails des rapports, envoi automatique, type par défaut | Donneurs d'ordre (fournisseurs, marques) pour qui le technicien intervient |
-| interventions | client_id, type_id, principal_id (facultatif), numéros de tickets (facultatifs, plusieurs possibles, recherchables), mode de prix (heure ou forfait), taux horaire ou forfait, demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut (planifiée, en cours, en attente de pièce, retour à planifier, clôturée), rapport, signature_url | Les interventions du technicien |
-| intervention_photos | intervention_id, photo_url, moment (avant, pièce, après) | Photos d'intervention |
-| intervention_parts | intervention_id, désignation, référence, quantité | Pièces utilisées (sans prix) |
-| part_orders | intervention_id, référence (facultative), désignation, quantité, remarque, fournisseur, photo (notice de pose ou article abîmé), statut (à commander, commandée, reçue), dates de commande et de réception, n° de commande fournisseur | Pièces à commander et leur suivi |
+| principals, principal_addresses | nom ; adresses email nommées par service | Donneurs d'ordre et leurs bureaux |
+| service_cases | identifiant interne, type, donneur d'ordre, client final, lieu, payeur, contact sur place, matériel, demande d'origine, garantie, état, langue du destinataire | Les dossiers d'intervention |
+| case_references | case_id, émetteur (donneur d'ordre), numéro de ticket | Tickets, uniques par émetteur |
+| visits_service | case_id, planification, état du rendez-vous, issue et motif | Les passages |
+| visit_workers | passage, intervenant, arrivée, départ, pauses | Temps par intervenant |
+| visit_media | passage, fichier privé, moment (avant, pièce, après, notice, article abîmé) | Photos et documents |
+| part_needs, part_orders, part_receipts | besoin ; envoi identifié au fournisseur ; réception (quantité, date) | Pièces à commander et leur suivi |
+| report_versions | passage, numéro de version, contenu, taux, arrondi, TVA, montant figé, signature, statut (brouillon, validé, envoyé) | Rapports versionnés |
+| outbound_messages | version, destinataire, canal, identifiant d'opération, état | File d'envois (emails, facturation, clouds) |
+| inbound_messages | adresse de réception du compte, empreinte, dossier proposé, état de revue | Emails reçus et rattachements |
 | follow_up_rules | cible (catégorie ou événement), délai en jours | Les règles de relance |
 | expenses | date, fournisseur, montant, TVA, catégorie, photo_url | Notes de frais (V2) |
 | catalog_items | référence, désignation, prix, unité, remise | Catalogue importé (V3) |
@@ -326,6 +397,8 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 - Nouvelle présentation sobre et professionnelle (maquette), pas celle du prototype.
 - PC : application dans le navigateur, plus copie automatique des rapports PDF dans OneDrive et Google Drive.
 - Identité de l'entreprise (logo, coordonnées, TVA, IBAN, conditions) saisie une fois et imprimée sur tous les rapports et emails.
+- Pipelines suivis par affaire (plusieurs affaires possibles chez un même client).
+- Relecture du 10 octobre intégrée (§ 6 ter) : dossier et passages, temps par intervenant, tickets par émetteur, imprévus, versions figées, hors réseau, envois sans doublon, fichiers privés, langue du destinataire, accueil technicien rapide.
 - Destinataires des rapports choisis à chaque envoi : bureau du fournisseur (adresse par service), client final, ou les deux.
 - Réception d'une pièce ou d'un matériel : bouton « Pièce reçue » ou email intégré au dossier (reconnu par le numéro de ticket), toujours confirmé par le technicien.
 
@@ -337,3 +410,6 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 - Fournisseur de transcription vocale à retenir.
 - Outils de facturation à connecter en premier (Teamleader, Odoo, autre ?) et format d'envoi du bon d'intervention.
 - Prévenir le client du rendez-vous : email seulement, ou aussi SMS ?
+- Temps et prix : arrondi au quart d'heure supérieur et pauses déduites par défaut ? (§ 6 ter, à confirmer)
+- Relances : départ à la dernière visite, en jours, rappel interne seulement ? (§ 6, à confirmer)
+- Arbitrages pipeline restants : tarif SAMO toujours livré même avec une action ouverte ; « RDV à fixer » et « Bloqué » ne démarrent pas une étape.

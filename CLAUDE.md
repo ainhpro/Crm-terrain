@@ -19,6 +19,8 @@ Tous les modules partagent le même fichier clients (organisations, clients, gro
 | Faisabilité d'offres | `src/modules/offres` | Prévu (à spécifier : catalogue importé, offre PDF, prix calculés par le code) |
 | Route (tournées, notes de frais) | `src/modules/route` | Prévu (V2) |
 
+Avant de coder le module interventions, lire le § 6 ter du cahier des charges (dossier et passages, versions figées, envois sans doublon, hors réseau). États des dossiers SAV : ils peuvent être stockés (la règle « jamais stocké » ne concerne que le pipeline commercial).
+
 Ne rien construire des modules prévus sans demande explicite. Chaque module s'active par compte (`organizations.modules actifs`).
 
 **Hors périmètre définitif** : facturation, comptabilité, gestion de stock. L'outil s'arrête à l'offre et au bon d'intervention ; la facture se fait dans l'outil de facturation existant, auquel on envoie le bon d'intervention.
@@ -46,7 +48,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 2. **Le serveur est le seul intermédiaire** : le téléphone ne contacte jamais directement l'IA ni les fournisseurs. Clés d'API uniquement côté serveur (jamais de secret en `NEXT_PUBLIC_`). Les opérations ordinaires du serveur s'exécutent **avec l'identité de l'utilisateur** (client Supabase avec son jeton) pour que la RLS s'applique ; la clé `service_role` (qui contourne la RLS) est réservée à quelques traitements nommés (abonnement, envois, réception d'emails) qui vérifient eux-mêmes l'organisation.
 3. **Prix, totaux et durées calculés par le code, jamais par l'IA.**
 4. **L'IA ne modifie jamais rien sans validation** de l'utilisateur (rapport vocal, import, catalogue : on propose, l'utilisateur valide).
-5. **Statut de pipeline jamais stocké** : recalculé à partir des actions par `src/modules/crm/pipeline/engine.ts`. Une étape avancée terminée valide les étapes précédentes.
+5. **Statut de pipeline jamais stocké** : recalculé **par affaire** à partir de ses actions par `src/modules/crm/pipeline/engine.ts`. Une étape avancée terminée valide les étapes précédentes. Une seule définition d'« action réellement ouverte » pour urgences, retards et statuts.
 6. **Étapes identifiées par leur `code`**, jamais par le texte du libellé.
 7. **Aucun texte utilisateur injecté tel quel dans la page** (pas de `dangerouslySetInnerHTML` sur des données utilisateur — faille du prototype).
 8. **FR et NL dès la V1** : aucun texte d'interface en dur, tout passe par les fichiers de langue.
