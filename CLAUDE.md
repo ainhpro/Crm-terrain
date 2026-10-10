@@ -14,7 +14,7 @@ Tous les modules partagent le même fichier clients (organisations, clients, gro
 | Module | Dossier | Statut |
 |---|---|---|
 | CRM terrain (socle) | `src/modules/crm` | **En cours — V1** |
-| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (demande depuis un email, photos, heures, pièces à commander et suivi, bon d'intervention) |
+| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (types d'intervention et donneurs d'ordre configurables, demande depuis un email, photos, heures, pièces à commander et suivi, bon d'intervention envoyé automatiquement au donneur d'ordre après validation) |
 | Prospection | `src/modules/prospection` | Prévu (listes, séquences d'emails, RGPD) |
 | Faisabilité d'offres | `src/modules/offres` | Prévu (à spécifier : catalogue importé, offre PDF, prix calculés par le code) |
 | Route (tournées, notes de frais) | `src/modules/route` | Prévu (V2) |

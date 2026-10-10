@@ -93,6 +93,16 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 
 ### 6 bis. Interventions technicien (V1)
 
+**Réglages de départ (une fois, modifiables dans Réglages)** :
+
+- **Types d'intervention** : liste par compte, avec des modèles proposés (SAV, prise de mesure, placement showroom) et des types libres (ex. « Intervention Culligan »). Chaque type peut avoir ses propres champs (garantie pour un SAV, mesures pour une prise de mesure, produits installés pour un placement).
+- **Donneurs d'ordre** : beaucoup de techniciens sont indépendants et travaillent pour plusieurs fournisseurs ou marques. Pour chacun : nom, adresse(s) email où envoyer les rapports, envoi automatique oui/non, type d'intervention par défaut. « Client particulier » reste possible sans donneur d'ordre.
+- **Numéro d'intervention facultatif** : jamais obligatoire ; lu dans l'objet du mail quand il existe, sinon saisi ou laissé vide.
+
+**Placement showroom** : le technicien photographie les produits installés (et, s'il veut, leurs références) ; le rapport de placement part au donneur d'ordre et au showroom après validation.
+
+**Envoi automatique** : une fois le bon d'intervention validé par le technicien (un geste), il part sans autre action au donneur d'ordre, au client s'il le faut et vers la facturation. Aucun envoi sans cette validation.
+
 1. **Demande** : le technicien transfère l'email ou le rapport du client (ou crée l'intervention à la main). L'IA propose client (nouveau ou existant), adresse, téléphone, problème, garantie probable ; le technicien vérifie.
    - **Numéro de demande** : si l'objet du mail (ou le rapport) contient un numéro de demande d'intervention (ex. « SAV n° 2026-0457 », numéro donné par le fabricant, le magasin ou le donneur d'ordre), il est lu et enregistré avec l'intervention. Le technicien peut aussi le saisir ou le corriger. Ce numéro apparaît dans la liste des interventions, sur le bon d'intervention et dans l'envoi vers la facturation ; on peut rechercher une intervention par ce numéro.
    - Un deuxième email portant le même numéro (relance, complément) est rattaché à l'intervention existante au lieu d'en créer une nouvelle (proposé, validé par le technicien). L'outil propose des créneaux ; « Planifier et prévenir le client ».
@@ -173,7 +183,9 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 | visits | client_id, date, heure, statut, source agenda | Les visites planifiées ou réalisées |
 | visit_reports | visit_id, audio_url, transcription, résumé, validé | Les rapports vocaux |
 | tasks | client_id, report_id facultatif, texte, échéance, statut | Les choses à faire |
-| interventions | client_id, numéro de demande externe (facultatif, unique par compte), demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut (planifiée, en cours, en attente de pièce, retour à planifier, clôturée), rapport, signature_url | Les interventions du technicien |
+| intervention_types | nom, champs propres, ordre | Types d'intervention du compte (SAV, prise de mesure, placement showroom…) |
+| principals | nom, emails des rapports, envoi automatique, type par défaut | Donneurs d'ordre (fournisseurs, marques) pour qui le technicien intervient |
+| interventions | client_id, type_id, principal_id (facultatif), numéro d'intervention externe (facultatif, unique par compte et donneur d'ordre), demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut (planifiée, en cours, en attente de pièce, retour à planifier, clôturée), rapport, signature_url | Les interventions du technicien |
 | intervention_photos | intervention_id, photo_url, moment (avant, pièce, après) | Photos d'intervention |
 | intervention_parts | intervention_id, désignation, référence, quantité | Pièces utilisées (sans prix) |
 | part_orders | intervention_id, référence, désignation, quantité, fournisseur, photo de la notice, statut (à commander, commandée, reçue), dates de commande et de réception, n° de commande fournisseur | Pièces à commander et leur suivi |
