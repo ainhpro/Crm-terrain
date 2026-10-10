@@ -10,13 +10,18 @@ Application modulaire pour commerciaux terrain indépendants : clients, pipeline
 
 ```bash
 npm install
+npm run dev       # application sur http://localhost:3000
 npm test          # tests automatiques
+npm run test:db   # isolation des comptes (nécessite PostgreSQL installé localement)
 npm run typecheck # vérification TypeScript
 ```
 
 ## Structure
 
 ```
+src/app/        écrans (Next.js)
+src/i18n/       français / néerlandais
+supabase/       migrations de la base et règles d'isolation
 src/modules/
   crm/          socle CRM (V1) : pipelines, actions, modèle INDA, reprise du prototype
   prospection/  à venir

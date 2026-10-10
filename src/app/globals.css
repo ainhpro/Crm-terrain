@@ -1,0 +1,23 @@
+/* Palette reprise du prototype INDA. */
+:root {
+  --blue: #002d58;
+  --gold: #c5a059;
+  --bg: #eef2f7;
+  --surface: #fff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+.hdr { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; background: #0a0a0a; color: #fff; }
+.hdr-title { font-size: 19px; font-weight: 700; letter-spacing: -0.5px; }
+.lang { display: flex; gap: 6px; }
+.lang button { min-width: 44px; min-height: 36px; border-radius: 18px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: rgba(255,255,255,.6); font-weight: 700; font-size: 12px; cursor: pointer; }
+.lang button[aria-pressed='true'] { color: #fff; border-color: var(--gold); }
+
+.content { padding: 18px; display: grid; gap: 10px; }
+.content h1 { font-size: 22px; }
+.muted { color: var(--muted); }

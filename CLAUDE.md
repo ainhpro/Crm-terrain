@@ -50,18 +50,40 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 9. **Dates** : jours au format ISO `AAAA-MM-JJ` ; « aujourd'hui » est passé en paramètre aux fonctions métier (testable, pas de décalage de fuseau).
 10. **RGPD** : données en UE autant que possible ; export complet et suppression de compte possibles ; audios supprimables après transcription.
 
+## Commandes
+
+| Commande | Rôle |
+|---|---|
+| `npm run dev` | Application en local (http://localhost:3000) |
+| `npm test` | Tests unitaires (logique métier, traductions) |
+| `npm run test:db` | Tests d'isolation sur un Postgres jetable (`initdb` local, ou `DATABASE_URL`) |
+| `npm run typecheck` / `npm run build` | Vérification TypeScript / build de production |
+
+## Structure
+
+```
+src/app/                 écrans Next.js (App Router)
+src/i18n/                langue : messages/fr.ts (référence) et messages/nl.ts (mêmes clés, vérifié par TypeScript)
+src/modules/<module>/    logique métier par module, sans dépendance à Next.js ni à Supabase
+supabase/migrations/     schéma de la base et politiques RLS
+supabase/tests/          émulation locale de Supabase (rôles, auth.uid) — tests uniquement
+tests/db/                tests d'isolation des comptes
+docs/                    cahier des charges, prototype, analyses
+```
+
 ## Méthode de travail
 
 - Une fonctionnalité = une branche = une demande de fusion relue avant production.
-- Avant chaque push : `npm run typecheck` et `npm test` doivent passer.
+- Avant chaque push : `npm run typecheck`, `npm test` et `npm run test:db` doivent passer (la CI GitHub les relance avec `npm run build`).
+- Toute modification de la base passe par une nouvelle migration dans `supabase/migrations/` (jamais de modification d'une migration déjà fusionnée), avec ses politiques RLS et ses tests dans `tests/db/`.
 - Tests obligatoires sur les points critiques : isolation des comptes, calcul du pipeline, calcul des prix.
 - Trois environnements : développement, test, production.
 - Interface pensée pour le téléphone, utilisable d'une main.
 
 ## Feuille de route V1 (module CRM)
 
-1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel.
-2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée.
+1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; Supabase et Vercel en attente)*
+2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; reste le branchement Supabase et les écrans de connexion)*
 3. Pipelines configurables et calcul des étapes déduites ; pipelines INDA comme premier modèle. *(moteur de calcul et modèle INDA faits, reste la base et les écrans)*
 4. Import Excel avec reconnaissance des colonnes par l'IA ; import des clients INDA (+ reprise de la sauvegarde du prototype, convertisseur fait).
 5. Écrans Aujourd'hui, Actions, Fiche client, Résumé, Agenda.
