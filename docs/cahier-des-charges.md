@@ -93,7 +93,9 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 
 ### 6 bis. Interventions technicien (V1)
 
-1. **Demande** : le technicien transfère l'email ou le rapport du client (ou crée l'intervention à la main). L'IA propose client (nouveau ou existant), adresse, téléphone, problème, garantie probable ; le technicien vérifie. L'outil propose des créneaux ; « Planifier et prévenir le client ».
+1. **Demande** : le technicien transfère l'email ou le rapport du client (ou crée l'intervention à la main). L'IA propose client (nouveau ou existant), adresse, téléphone, problème, garantie probable ; le technicien vérifie.
+   - **Numéro de demande** : si l'objet du mail (ou le rapport) contient un numéro de demande d'intervention (ex. « SAV n° 2026-0457 », numéro donné par le fabricant, le magasin ou le donneur d'ordre), il est lu et enregistré avec l'intervention. Le technicien peut aussi le saisir ou le corriger. Ce numéro apparaît dans la liste des interventions, sur le bon d'intervention et dans l'envoi vers la facturation ; on peut rechercher une intervention par ce numéro.
+   - Un deuxième email portant le même numéro (relance, complément) est rattaché à l'intervention existante au lieu d'en créer une nouvelle (proposé, validé par le technicien). L'outil propose des créneaux ; « Planifier et prévenir le client ».
 2. **Interventions du jour** : liste avec heure, problème, temps de trajet, garantie ou payant.
 3. **Sur place** : heure d'arrivée notée en un geste (modifiable), durée qui tourne, photos (avant, pièce, après), demande du client rappelée.
 4. **Fin** : heure de départ, rapport vocal structuré par l'IA (travaux réalisés, pièces utilisées, remarques), photos jointes, signature du client sur l'écran.
@@ -166,7 +168,7 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 | visits | client_id, date, heure, statut, source agenda | Les visites planifiées ou réalisées |
 | visit_reports | visit_id, audio_url, transcription, résumé, validé | Les rapports vocaux |
 | tasks | client_id, report_id facultatif, texte, échéance, statut | Les choses à faire |
-| interventions | client_id, demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut, rapport, signature_url | Les interventions du technicien |
+| interventions | client_id, numéro de demande externe (facultatif, unique par compte), demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut, rapport, signature_url | Les interventions du technicien |
 | intervention_photos | intervention_id, photo_url, moment (avant, pièce, après) | Photos d'intervention |
 | intervention_parts | intervention_id, désignation, référence, quantité | Pièces utilisées (sans prix) |
 | follow_up_rules | cible (catégorie ou événement), délai en jours | Les règles de relance |
