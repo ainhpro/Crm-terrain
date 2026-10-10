@@ -1,0 +1,192 @@
+import { headers } from 'next/headers';
+import { Flash } from '@/components';
+import { logout } from '@/server/actions/auth';
+import {
+  addPrincipal, addPrincipalAddress, addType, inviteMember, saveCompany, saveMemberSettings, suggestOptions,
+} from '@/server/actions/settings';
+import { isTechnician, requireCtx } from '@/server/context';
+import { withUser } from '@/server/db';
+import { readOptions } from '@/modules/interventions/options';
+import { loadOrgIdentity } from '@/server/interventions';
+
+type Member = { user_id: string; name: string; role: 'owner' | 'member'; profile: string | null; type_ids: string[] | null; options: unknown };
+
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ ok?: string; erreur?: string; invitation?: string }> }) {
+  const ctx = await requireCtx();
+  const { t } = ctx;
+  const sp = await searchParams;
+  const host = (await headers()).get('host') ?? 'localhost:3000';
+  const data = await withUser(ctx.userId, async (q) => ({
+    org: await loadOrgIdentity(q, ctx.orgId),
+    types: (await q<{ id: string; name: string; kind: string }>(`select id, name, kind from intervention_types where archived_at is null order by position, name`)).rows,
+    principals: (
+      await q<{ id: string; name: string; addresses: { label: string; email: string }[] }>(
+        `select p.id, p.name, coalesce(json_agg(json_build_object('label', a.label, 'email', a.email) order by a.label) filter (where a.id is not null), '[]') as addresses
+         from principals p left join principal_addresses a on a.principal_id = p.id where p.archived_at is null group by p.id order by p.name`,
+      )
+    ).rows,
+    members: (
+      await q<Member>(
+        `select m.user_id, coalesce(p.full_name, p.email) as name, m.role, s.profile, s.type_ids, s.options
+         from organization_members m join profiles p on p.id = m.user_id
+         left join member_settings s on s.organization_id = m.organization_id and s.user_id = m.user_id
+         order by m.created_at`,
+      )
+    ).rows,
+  }));
+  const isOwner = ctx.role === 'owner';
+  const me = data.members.find((m) => m.user_id === ctx.userId);
+  const editable = isOwner ? data.members : me ? [me] : [];
+  const errorText = sp.erreur === 'vat' ? t.settings.vatInvalid : sp.erreur === 'owner' ? t.settings.ownerOnly : t.common.error;
+
+  const MemberForm = ({ m }: { m: Member }) => {
+    const o = readOptions(m.options);
+    const profile = m.profile ?? 'commercial';
+    return (
+      <form action={saveMemberSettings} className="card pad stack">
+        <input type="hidden" name="userId" value={m.user_id} />
+        {isOwner && data.members.length > 1 && <b>{t.settings.memberSettings} {m.name}</b>}
+        <fieldset>
+          <legend>{t.settings.profile}</legend>
+          <div className="choices">
+            {(['commercial', 'technician', 'both'] as const).map((p) => (
+              <label key={p} className="choice"><input type="radio" name="profile" value={p} defaultChecked={profile === p} /><span>{t.welcome[p]}</span></label>
+            ))}
+          </div>
+        </fieldset>
+        {data.types.length > 0 && (
+          <fieldset className="stack" style={{ gap: 0 }}>
+            <legend>{t.settings.myTypes}</legend>
+            <div className="card">
+              {data.types.map((ty) => (
+                <label key={ty.id} className="check"><input type="checkbox" name="typeId" value={ty.id} defaultChecked={(m.type_ids ?? []).includes(ty.id)} />{ty.name}</label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        <fieldset className="stack" style={{ gap: 0 }}>
+          <legend>{t.settings.options}</legend>
+          <p className="faint" style={{ marginBottom: 6 }}>{t.settings.optionsHint}</p>
+          <div className="card">
+            <label className="check"><input type="checkbox" name="optParts" defaultChecked={o.parts} />{t.settings.optionParts}</label>
+            <label className="check"><input type="checkbox" name="optPricing" defaultChecked={o.pricing} />{t.settings.optionPricing}</label>
+            <label className="check"><input type="checkbox" name="optSignature" defaultChecked={o.signature} />{t.settings.optionSignature}</label>
+            <label className="check"><input type="checkbox" name="optWarranty" defaultChecked={o.warranty} />{t.settings.optionWarranty}</label>
+          </div>
+        </fieldset>
+        <div className="grid2">
+          <button className="btn primary" type="submit">{t.common.save}</button>
+          <button className="btn" type="submit" formAction={suggestOptions}>{t.settings.suggest}</button>
+        </div>
+      </form>
+    );
+  };
+
+  return (
+    <main className="page">
+      <h1>{t.settings.title}</h1>
+      {sp.ok && <Flash>{t.common.saved}</Flash>}
+      {sp.erreur && <Flash kind="bad">{errorText}</Flash>}
+
+      <section className="stack">
+        <h2>{t.settings.profile}</h2>
+        <p className="faint">{t.settings.profileHint}</p>
+        {editable.map((m) => <MemberForm key={m.user_id} m={m} />)}
+      </section>
+
+      <section className="stack">
+        <h2>{t.settings.company}</h2>
+        <p className="faint">{isOwner ? t.settings.companyHint : t.settings.ownerOnly}</p>
+        <form action={saveCompany} className="card pad stack">
+          <fieldset disabled={!isOwner} className="stack">
+            <label className="field">{t.settings.companyName}<input type="text" name="companyName" defaultValue={data.org.company_name ?? ''} /></label>
+            <label className="field">{t.clients.address}<input type="text" name="address" defaultValue={data.org.address ?? ''} /></label>
+            <div className="grid2 stack-sm">
+              <label className="field">{t.clients.phone}<input type="tel" name="phone" defaultValue={data.org.phone ?? ''} /></label>
+              <label className="field">{t.clients.email}<input type="email" name="email" defaultValue={data.org.email ?? ''} /></label>
+            </div>
+            <div className="grid2 stack-sm">
+              <label className="field">{t.settings.vat}<input type="text" name="vat" defaultValue={data.org.vat_number ?? ''} placeholder="BE0123456789" /></label>
+              <label className="field">{t.settings.iban}<input type="text" name="iban" defaultValue={data.org.iban ?? ''} /></label>
+            </div>
+            <label className="field">{t.settings.paymentTerms}<input type="text" name="paymentTerms" defaultValue={data.org.payment_terms ?? ''} /></label>
+            <label className="field">{t.settings.logo}<input type="file" name="logo" accept="image/png,image/jpeg" /></label>
+            <button className="btn primary" type="submit">{t.common.save}</button>
+          </fieldset>
+        </form>
+      </section>
+
+      {isTechnician(ctx) && (
+        <>
+          <section className="stack">
+            <h2>{t.settings.types}</h2>
+            <div className="card list">
+              {data.types.map((ty) => (
+                <div key={ty.id}><span className="main">{ty.name}</span><span className="tag">{t.settings.kinds[ty.kind as keyof typeof t.settings.kinds]}</span></div>
+              ))}
+            </div>
+            <form action={addType} className="row wrap">
+              <input type="text" name="name" placeholder={t.settings.addType} aria-label={t.settings.addType} className="grow" required />
+              <select name="kind" aria-label={t.interventions.type} style={{ maxWidth: 180 }}>
+                {(['sav', 'measure', 'showroom', 'custom'] as const).map((k) => <option key={k} value={k}>{t.settings.kinds[k]}</option>)}
+              </select>
+              <button className="btn" type="submit">{t.common.add}</button>
+            </form>
+          </section>
+
+          <section className="stack">
+            <h2>{t.settings.principals}</h2>
+            {data.principals.map((p) => (
+              <div key={p.id} className="card pad stack">
+                <b>{p.name}</b>
+                {p.addresses.map((a, i) => <span key={i} className="small">{a.label} · <span className="muted">{a.email}</span></span>)}
+                <form action={addPrincipalAddress} className="row wrap">
+                  <input type="hidden" name="principalId" value={p.id} />
+                  <input type="text" name="label" placeholder={t.settings.addressLabel} aria-label={t.settings.addressLabel} className="grow" required />
+                  <input type="email" name="email" placeholder={t.clients.email} aria-label={t.clients.email} className="grow" required />
+                  <button className="btn small" type="submit">{t.settings.addAddress}</button>
+                </form>
+              </div>
+            ))}
+            <form action={addPrincipal} className="row wrap">
+              <input type="text" name="name" placeholder={t.settings.addPrincipal} aria-label={t.settings.addPrincipal} className="grow" required />
+              <select name="defaultTypeId" aria-label={t.interventions.type} style={{ maxWidth: 200 }}>
+                <option value="">—</option>
+                {data.types.map((ty) => <option key={ty.id} value={ty.id}>{ty.name}</option>)}
+              </select>
+              <button className="btn" type="submit">{t.common.add}</button>
+            </form>
+          </section>
+        </>
+      )}
+
+      {isOwner && (
+        <section className="stack" id="equipe">
+          <h2>{t.settings.team}</h2>
+          <p className="faint">{t.settings.teamHint}</p>
+          <div className="card list">
+            {data.members.map((m) => (
+              <div key={m.user_id}><span className="main">{m.name}</span><span className="tag">{m.role === 'owner' ? t.settings.owner : t.settings.member}</span></div>
+            ))}
+          </div>
+          {sp.invitation && (
+            <div className="note info" style={{ wordBreak: 'break-all' }}>
+              {t.settings.inviteLink}<br />
+              <code>http{host.startsWith('localhost') ? '' : 's'}://{host}/invitation/{sp.invitation}</code>
+            </div>
+          )}
+          <form action={inviteMember} className="row wrap">
+            <input type="email" name="email" placeholder={t.clients.email} aria-label={t.clients.email} className="grow" required />
+            <select name="role" aria-label={t.settings.inviteRole} style={{ maxWidth: 160 }}>
+              <option value="member">{t.settings.member}</option>
+              <option value="owner">{t.settings.owner}</option>
+            </select>
+            <button className="btn" type="submit">{t.settings.invite}</button>
+          </form>
+        </section>
+      )}
+
+      <form action={logout}><button className="btn block" type="submit">{t.auth.logout}</button></form>
+    </main>
+  );
+}

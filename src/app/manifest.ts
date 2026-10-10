@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'CRM terrain',
     start_url: '/',
     display: 'standalone',
-    background_color: '#EEF2F7',
-    theme_color: '#0A0A0A',
+    background_color: '#F5F6F8',
+    theme_color: '#1849A9',
     icons: [],
   };
 }

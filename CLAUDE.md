@@ -45,7 +45,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 ## Règles non négociables
 
 1. **Isolation par compte** : toute table porte `organization_id`, protégée par Row Level Security Supabase. Chaque nouvelle table reçoit sa politique RLS et un test d'isolation.
-2. **Le serveur est le seul intermédiaire** : le téléphone ne contacte jamais directement l'IA ni les fournisseurs. Clés d'API uniquement côté serveur (jamais de secret en `NEXT_PUBLIC_`). Les opérations ordinaires du serveur s'exécutent **avec l'identité de l'utilisateur** (client Supabase avec son jeton) pour que la RLS s'applique ; la clé `service_role` (qui contourne la RLS) est réservée à quelques traitements nommés (abonnement, envois, réception d'emails) qui vérifient eux-mêmes l'organisation.
+2. **Le serveur est le seul intermédiaire** (accès base : `withUser` dans `src/server/db.ts`, qui reproduit l'identité Supabase ; `withService` seulement pour la connexion et les traitements nommés) : le téléphone ne contacte jamais directement l'IA ni les fournisseurs. Clés d'API uniquement côté serveur (jamais de secret en `NEXT_PUBLIC_`). Les opérations ordinaires du serveur s'exécutent **avec l'identité de l'utilisateur** (client Supabase avec son jeton) pour que la RLS s'applique ; la clé `service_role` (qui contourne la RLS) est réservée à quelques traitements nommés (abonnement, envois, réception d'emails) qui vérifient eux-mêmes l'organisation.
 3. **Prix, totaux et durées calculés par le code, jamais par l'IA.**
 4. **L'IA ne modifie jamais rien sans validation** de l'utilisateur (rapport vocal, import, catalogue : on propose, l'utilisateur valide).
 5. **Statut de pipeline jamais stocké** : recalculé **par affaire** à partir de ses actions par `src/modules/crm/pipeline/engine.ts`. Une étape avancée terminée valide les étapes précédentes. Une seule définition d'« action réellement ouverte » pour urgences, retards et statuts.
@@ -60,15 +60,18 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 
 | Commande | Rôle |
 |---|---|
-| `npm run dev` | Application en local (http://localhost:3000) |
+| `npm run db:start` / `db:reset` / `db:migrate` | Base locale persistante (émulation Supabase, port 54322) et données de démonstration |
+| `npm run dev` | Application en local (http://localhost:3000) ; connexion de développement par email (`AUTH_MODE=dev`) |
 | `npm test` | Tests unitaires (logique métier, traductions) |
 | `npm run test:db` | Tests d'isolation sur un Postgres jetable (`initdb` local, ou `TEST_DATABASE_URL` : base au nom unique créée puis supprimée, serveur local exigé ; `DATABASE_URL` n'est jamais utilisé) |
 | `npm run typecheck` / `npm run build` | Vérification TypeScript / build de production |
+| `npm run test:e2e` | Parcours complet dans un navigateur (app sur le port 3200) |
 
 ## Structure
 
 ```
-src/app/                 écrans Next.js (App Router)
+src/app/                 écrans Next.js (App Router) ; (app)/ = écrans connectés
+src/server/              accès base via withUser (RLS), actions serveur, PDF, stockage privé
 src/i18n/                langue : messages/fr.ts (référence) et messages/nl.ts (mêmes clés, vérifié par TypeScript)
 src/modules/<module>/    logique métier par module, sans dépendance à Next.js ni à Supabase
 supabase/migrations/     schéma de la base et politiques RLS
@@ -87,6 +90,8 @@ docs/                    cahier des charges, prototype, analyses
 - Interface pensée pour le téléphone, utilisable d'une main.
 
 ## Feuille de route V1 (module CRM)
+
+**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive.
 
 1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; Supabase et Vercel en attente)*
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; reste le branchement Supabase et les écrans de connexion)*
