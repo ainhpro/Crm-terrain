@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ACTION_STATUSES, DEAL_STATUSES, type ActionStatus } from '@/modules/crm/pipeline/types';
-import { buildImport, type CrmSource, dedupeKey, type Mapping, TARGET_FIELDS, type TargetField } from '@/modules/crm/import/columns';
+import { buildImport, type CrmSource, type ExistingClient, MAX_COLUMNS, type Mapping, TARGET_FIELDS, type TargetField } from '@/modules/crm/import/columns';
 import { loadClient } from '../crm';
 import { requireCtx } from '../context';
 import { pgCode, withUser } from '../db';
@@ -117,7 +117,7 @@ export interface ImportPreview {
   rows: string[][];
   mapping: Mapping;
   /** Clés des clients déjà présents, pour annoncer les doublons dès le bilan. */
-  existing: string[];
+  existing: ExistingClient[];
   /** Export d'un CRM reconnu à ses en-têtes. */
   source?: CrmSource | null;
   error?: string;
@@ -159,9 +159,8 @@ export async function readImportFile(_: ImportPreview | null, formData: FormData
   if (table.length < 2) return { ...empty, error: 'unreadable' };
   if (table.length > 5001) return { ...empty, error: 'tooLarge' };
   const [headers, ...rows] = table as [string[], ...string[][]];
-  const existing = await withUser(ctx.userId, async (q) =>
-    (await q<{ name: string; city: string | null }>(`select name, city from clients`)).rows.map((c) => dedupeKey(c.name, c.city ?? undefined)),
-  );
+  if (headers.length > MAX_COLUMNS) return { ...empty, error: 'tooLarge' };
+  const existing = await withUser(ctx.userId, async (q) => (await q<ExistingClient>(`select name, city, address from clients`)).rows);
   return { headers, rows, mapping: proposeMapping(headers), existing, source: detectSource(headers) };
 }
 
@@ -180,8 +179,10 @@ export async function runImport(formData: FormData) {
   const mapping = parseMapping(String(formData.get('mapping') ?? '[]'), Math.max(0, ...rows.map((r) => r.length)));
   let imported = 0;
   await withUser(ctx.userId, async (q) => {
-    const existing = await q<{ name: string; city: string | null }>(`select name, city from clients`);
-    const report = buildImport(rows, mapping, new Set(existing.rows.map((c) => dedupeKey(c.name, c.city ?? undefined))));
+    const existing = (await q<ExistingClient>(`select name, city, address from clients`)).rows;
+    // Lignes que l'utilisateur a choisi d'importer malgré une ressemblance (relecture I01).
+    const force = new Set(formData.getAll('force').map(Number).filter(Number.isInteger));
+    const report = buildImport(rows, mapping, existing, force);
     const created = new Map<number, string>(); // ligne du fichier → client créé
     for (const r of report.rows) {
       const v = r.values;
@@ -215,9 +216,21 @@ export async function runImport(formData: FormData) {
 export interface ReportProposal {
   text: string;
   summary: string;
+  /** Étape proposée (« affaire:étape ») ; null si rien de sûr. */
   step: { value: string; label: string; source: string | null } | null;
+  /** Plusieurs affaires correspondent : l'utilisateur choisit (relecture M02). */
+  candidates: { value: string; label: string }[];
+  /** Phrases qui citent une étape sans la dire faite (négation, futur). */
+  notDone: string[];
+  /** Toutes les étapes des affaires en cours, pour corriger la proposition. */
+  steps: { value: string; label: string }[];
+  /** Actions encore ouvertes par étape : celles qui matérialisent l'étape sont proposées à la clôture (M01). */
+  openActions: Record<string, { id: string; label: string; close: boolean }[]>;
   tasks: { text: string; dueOn: string | null; source: string }[];
 }
+
+// Statuts qui matérialisent l'avancement d'une étape ; une relance ou une attente reste un rappel à part.
+const PROGRESS_STATUSES = new Set<ActionStatus>(['todo', 'appointment_to_set', 'appointment_set', 'in_progress', 'blocked']);
 
 export async function prepareReport(_: ReportProposal | null, formData: FormData): Promise<ReportProposal | null> {
   const ctx = await requireCtx();
@@ -227,14 +240,29 @@ export async function prepareReport(_: ReportProposal | null, formData: FormData
   const data = await withUser(ctx.userId, (q) => loadClient(q, str(formData, 'clientId'), ctx.today));
   if (!data) return null;
   // Étapes des affaires ouvertes, dans l'ordre ; la valeur garde l'affaire et l'étape.
-  const options = data.dealViews
-    .filter((d) => d.row.status === 'open')
-    .flatMap((d) => d.pipeline.steps.map((s) => ({ id: `${d.row.id}:${s.id}`, code: s.code, label: `${s.label} (${d.row.name})` })));
+  const open = data.dealViews.filter((d) => d.row.status === 'open');
+  const options = open.flatMap((d) =>
+    d.pipeline.steps.map((s) => ({ id: `${d.row.id}:${s.id}`, code: s.code, label: `${s.label} (${d.row.name})`, stepLabel: s.label, group: d.row.id })),
+  );
   const r = structureReport(text, options, ctx.today);
+  const openActions: ReportProposal['openActions'] = {};
+  for (const a of data.actions) {
+    if (!a.deal_id || !a.step_id || a.status === 'done') continue;
+    const key = `${a.deal_id}:${a.step_id}`;
+    (openActions[key] ??= []).push({
+      id: a.id,
+      label: [ctx.t.actionStatus[a.status], a.due_date, a.note].filter(Boolean).join(' · '),
+      close: a.kind === 'step' && PROGRESS_STATUSES.has(a.status),
+    });
+  }
   return {
     text,
     summary: r.summary,
     step: r.stepDone ? { value: r.stepDone.id, label: r.stepDone.label, source: r.stepSource } : null,
+    candidates: r.candidates.map((c) => ({ value: c.id, label: c.label })),
+    notDone: r.notDone,
+    steps: options.map((o) => ({ value: o.id, label: o.label })),
+    openActions,
     tasks: r.tasks,
   };
 }
@@ -261,8 +289,12 @@ export async function applyReport(formData: FormData) {
         stepId,
         ctx.today,
       ]);
-      // L'utilisateur a validé que l'étape est faite : les actions encore ouvertes sur cette étape le sont aussi.
-      await q(`update actions set status = 'done' where deal_id = $1 and step_id = $2 and status <> 'done'`, [dealId, stepId]);
+      // Seules les actions cochées dans la proposition sont closes (relecture M01) : une relance
+      // rattachée à l'étape reste ouverte si l'utilisateur ne l'a pas cochée.
+      const close = formData.getAll('closeAction').map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
+      if (close.length) {
+        await q(`update actions set status = 'done' where id = any($3::uuid[]) and deal_id = $1 and step_id = $2 and status <> 'done'`, [dealId, stepId, close]);
+      }
     }
     const tasks = formData.getAll('task').map(String);
     const dues = formData.getAll('taskDue').map(String);

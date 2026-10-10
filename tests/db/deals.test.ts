@@ -112,6 +112,8 @@ describe("ordre des étapes (P03)", () => {
 
   it('réordonne toutes les étapes en une fois', async () => {
     const order = await as(async (q) => {
+      // Affaires closes d'abord : un parcours suivi par une affaire en cours ne se réordonne pas (relecture D01).
+      await q(`update deals set status = 'won', closed_on = '2026-10-10' where pipeline_id = $1`, [id.facqMaj]);
       await q(`select public.reorder_pipeline_steps($1, $2::uuid[])`, [id.facqMaj, [id.cmd, id.rdv, id.offre]]);
       return (await q(`select code from pipeline_steps where pipeline_id = $1 order by position`, [id.facqMaj])).rows.map((r) => r.code);
     });
@@ -131,8 +133,9 @@ describe('archiver plutôt que supprimer (P05)', () => {
     await asUser(db, alice, (q) => q(`insert into actions (organization_id, client_id, deal_id, step_id) values ($1, $2, $3, $4)`, [org, id.geel, id.deal2026, id.offre]), {
       commit: true,
     });
-    expect(await sqlState(as((q) => q(`delete from pipeline_steps where id = $1`, [id.offre])))).toBe('23503');
-    expect(await sqlState(as((q) => q(`update pipeline_steps set archived_at = now() where id = $1`, [id.offre])))).toBeUndefined();
+    const closeDeals = (q: Query) => q(`update deals set status = 'won', closed_on = '2026-10-10' where pipeline_id = $1`, [id.facqMaj]);
+    expect(await sqlState(as(async (q) => { await closeDeals(q); await q(`delete from pipeline_steps where id = $1`, [id.offre]); }))).toBe('23503');
+    expect(await sqlState(as(async (q) => { await closeDeals(q); await q(`update pipeline_steps set archived_at = now() where id = $1`, [id.offre]); }))).toBeUndefined();
   });
 
   it('un groupe qui a des pipelines ne se supprime pas', async () => {

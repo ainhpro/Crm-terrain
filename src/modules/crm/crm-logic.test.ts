@@ -25,9 +25,12 @@ describe('import : colonnes', () => {
     const r = buildImport(rows, ['name', 'group', 'category'], new Set(['hasselt|']));
     expect(r.rows).toHaveLength(25);
     expect(r.empty).toBe(1);
-    expect(r.rows.find((x) => x.line === 3)!.issues).toEqual(['nom manquant']);
+    expect(r.rows.find((x) => x.line === 3)!.issues).toEqual(['missingName']);
     expect(r.rows.find((x) => x.line === 4)!.duplicateOf).toBe(2);
-    expect(r.rows.find((x) => x.line === 5)!.issues).toEqual(['catégorie différente de A, B ou C']);
+    // Catégorie inconnue : importée sans catégorie, avec avertissement (relecture I03).
+    expect(r.rows.find((x) => x.line === 5)!.issues).toEqual([]);
+    expect(r.rows.find((x) => x.line === 5)!.warnings).toEqual(['unknownCategory']);
+    expect(r.rows.find((x) => x.line === 5)!.values.category).toBeUndefined();
     const last = r.rows[r.rows.length - 1]!;
     expect(last.line).toBe(27); // erreur après la dixième ligne : bien vue
     expect(last.duplicateOf).toBe('existing');
@@ -95,5 +98,41 @@ describe('compte rendu dicté', () => {
       ['Prévoir la formation parois dans deux semaines', '2026-10-26'],
     ]);
     expect(r.summary).toContain('confirmé la commande');
+  });
+});
+
+describe('compte rendu dicté : relecture M02', () => {
+  const TODAY2 = '2026-10-12';
+  const deal = (group: string, name: string) => [
+    { id: `${group}:1`, code: 'contact', label: `Premier contact (${name})`, stepLabel: 'Premier contact', group },
+    { id: `${group}:2`, code: 'offre', label: `Offre envoyée (${name})`, stepLabel: 'Offre envoyée', group },
+    { id: `${group}:3`, code: 'commande', label: `Commande (${name})`, stepLabel: 'Commande', group },
+  ];
+
+  it('une négation ou un futur ne valident pas l’étape, et la phrase est montrée', () => {
+    for (const text of ["Je n'ai pas envoyé l'offre.", "L'offre sera envoyée lundi.", "Offre pas encore envoyée.", 'De offerte is nog niet verstuurd.']) {
+      const r = structureReport(text, deal('d1', 'Vente 2026'), TODAY2);
+      expect(r.stepDone, text).toBeNull();
+    }
+    expect(structureReport("Je n'ai pas envoyé l'offre.", deal('d1', 'Vente 2026'), TODAY2).notDone).toEqual(["Je n'ai pas envoyé l'offre."]);
+  });
+
+  it('une affirmation simple est proposée', () => {
+    const r = structureReport("J'ai envoyé l'offre ce matin.", deal('d1', 'Vente 2026'), TODAY2);
+    expect(r.stepDone?.id).toBe('d1:2');
+    expect(r.stepSource).toBe("J'ai envoyé l'offre ce matin.");
+  });
+
+  it('deux affaires possibles : rien n’est choisi, les deux sont proposées', () => {
+    const r = structureReport("Offre envoyée.", [...deal('d1', 'Cuisine'), ...deal('d2', 'Salle de bain')], TODAY2);
+    expect(r.stepDone).toBeNull();
+    expect(r.candidates.map((c) => c.id)).toEqual(['d1:2', 'd2:2']);
+  });
+
+  it('une étape ajoutée ou renommée par l’utilisateur est reconnue par son libellé', () => {
+    const steps = [{ id: 'd1:9', code: 'visite_technique', label: 'Visite technique (Rénovation)', stepLabel: 'Visite technique', group: 'd1' }];
+    expect(structureReport('Visite technique faite avec le chef de chantier.', steps, TODAY2).stepDone?.id).toBe('d1:9');
+    // « Premier » seul ne suffit pas à reconnaître « Premier contact ».
+    expect(structureReport('Premier passage terminé.', deal('d1', 'X'), TODAY2).stepDone).toBeNull();
   });
 });

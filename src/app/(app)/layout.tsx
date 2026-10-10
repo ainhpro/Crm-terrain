@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Icon } from '@/components';
 import { LOCALES } from '@/i18n';
 import { setLocale } from '@/app/actions';
+import { NetworkStatus } from '@/app/drafts';
 import { isCommercial, isTechnician, requireCtx } from '@/server/context';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           ))}
         </form>
       </header>
+      <NetworkStatus offlineLabel={t.common.offline} />
       {children}
       <nav className="bottom-nav" aria-label="Navigation">
         <div className="inner">

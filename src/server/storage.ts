@@ -19,7 +19,16 @@ const ALLOWED = new Map([
 ]);
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
+/**
+ * Le disque des fonctions Vercel n'est pas durable : y écrire perdrait photos, signatures et PDF
+ * (relecture D04). Tant que Supabase Storage n'est pas branché, on refuse au lieu de perdre.
+ */
+function assertDurable(): void {
+  if (process.env.VERCEL) throw new Error('durable_storage_required');
+}
+
 export async function saveFile(orgId: string, file: File): Promise<{ path: string; contentType: string }> {
+  assertDurable();
   const ext = ALLOWED.get(file.type);
   if (!ext) throw new Error('unsupported_type');
   if (file.size > MAX_FILE_BYTES) throw new Error('too_large');
@@ -31,6 +40,7 @@ export async function saveFile(orgId: string, file: File): Promise<{ path: strin
 }
 
 export async function saveBytes(orgId: string, bytes: Uint8Array, contentType: string): Promise<string> {
+  assertDurable();
   const ext = ALLOWED.get(contentType) ?? 'bin';
   const path = `${orgId}/${randomUUID()}.${ext}`;
   const full = join(ROOT, path);

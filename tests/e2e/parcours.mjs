@@ -59,8 +59,8 @@ await step('import', async () => {
   await page.getByRole('button', { name: 'Lire le fichier' }).click();
   await page.getByRole('heading', { name: 'Bilan' }).waitFor();
   await shot('06-import');
-  await page.getByRole('button', { name: /Importer les lignes valides \(1\)/ }).click();
-  await page.waitForURL(/importes=1/);
+  await page.getByRole('button', { name: /Importer les lignes valides \(2\)/ }).click();
+  await page.waitForURL(/importes=2/);
 });
 await step('nouvelle intervention depuis un email', async () => {
   await page.goto(`${BASE}/interventions/nouvelle`);

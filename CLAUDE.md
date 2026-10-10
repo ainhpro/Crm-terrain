@@ -68,6 +68,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | `npm run test:db` | Tests d'isolation sur un Postgres jetable (`initdb` local, ou `TEST_DATABASE_URL` : base au nom unique créée puis supprimée, serveur local exigé ; `DATABASE_URL` n'est jamais utilisé) |
 | `npm run typecheck` / `npm run build` | Vérification TypeScript / build de production |
 | `npm run test:e2e` | Parcours complet dans un navigateur (app sur le port 3200) |
+| `npm run test:e2e:relecture` | Contrôles navigateur de la relecture V1 (après `db:reset` ; modifie la base de démonstration) |
 
 ## Structure
 
@@ -93,7 +94,7 @@ docs/                    cahier des charges, prototype, analyses
 
 ## Feuille de route V1 (module CRM)
 
-**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive.
+**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive. Relecture externe de la V1 traitée : `docs/revue/2026-10-10-relecture-v1-reponse.md` ; conditions du pilote : `docs/pilote-fabrice.md`.
 
 1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; Supabase et Vercel en attente)*
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; reste le branchement Supabase et les écrans de connexion)*

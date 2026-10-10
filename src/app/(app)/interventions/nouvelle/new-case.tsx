@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { DraftKeeper } from '@/app/drafts';
 import type { Messages } from '@/i18n/messages/fr';
 import { createCase, readRequest } from '@/server/actions/interventions';
 
@@ -34,9 +35,10 @@ export function NewCaseFlow({
       </div>
 
       {mode === 'email' && (
-        <form action={read} className="stack">
+        <form action={read} className="stack" id="demande-email">
+          <DraftKeeper formId="demande-email" storageKey="demande-email" restoredLabel={t.common.draftRestored} />
           <label className="field">{t.interventions.emailSubject}<input type="text" name="subject" id="subject" /></label>
-          <label className="field">{t.interventions.emailBody}<textarea name="body" id="body" rows={7} /></label>
+          <label className="field">{t.interventions.emailBody}<textarea data-draft name="body" id="body" rows={7} /></label>
           <button className="btn primary" type="submit" disabled={pending}>{t.interventions.analyze}</button>
         </form>
       )}

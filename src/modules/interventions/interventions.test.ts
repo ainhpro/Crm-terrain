@@ -34,8 +34,32 @@ describe('prix et durées (M07)', () => {
       { mode: 'hourly', hourlyRateCents: 6000, vatRateBp: 2100, roundingMinutes: 15 },
     );
     expect(r.presenceMinutes).toBe(180 + 70);
-    expect(r.billableMinutes).toBe(150 + 75);
+    expect(r.workedMinutes).toBe(150 + 70);
+    expect(r.breakMinutes).toBe(30);
+    expect(r.billableMinutes).toBe(225); // 220 min arrondies une fois au quart d'heure
     expect(r.amountExclCents).toBe(22500);
+  });
+
+  it('M04 : deux séquences de 7 minutes font 15 minutes retenues, pas 30', () => {
+    const r = priceVisit(
+      [
+        { arrivedAt: at('10:00'), leftAt: at('10:07'), breakMinutes: 0 },
+        { arrivedAt: at('10:00'), leftAt: at('10:07'), breakMinutes: 0 },
+      ],
+      { mode: 'hourly', hourlyRateCents: 6000, vatRateBp: 2100, roundingMinutes: 15 },
+    );
+    expect([r.workedMinutes, r.billableMinutes, r.amountExclCents]).toEqual([14, 15, 1500]);
+  });
+
+  it('M04 : heures corrigées (départ avant arrivée) et pause plus longue que la présence ne comptent pas en négatif', () => {
+    const r = priceVisit(
+      [
+        { arrivedAt: at('11:00'), leftAt: at('10:00'), breakMinutes: 0 },
+        { arrivedAt: at('10:00'), leftAt: at('10:20'), breakMinutes: 45 },
+      ],
+      { mode: 'hourly', hourlyRateCents: 6000, vatRateBp: 2100, roundingMinutes: 15 },
+    );
+    expect([r.presenceMinutes, r.workedMinutes, r.billableMinutes, r.amountExclCents]).toEqual([20, 0, 0, 0]);
   });
 
   it('changement d’heure (25 octobre 2026) : durée réelle, pas l’écart des horloges', () => {

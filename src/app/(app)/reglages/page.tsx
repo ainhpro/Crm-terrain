@@ -21,6 +21,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const data = await withUser(ctx.userId, async (q) => ({
     org: await loadOrgIdentity(q, ctx.orgId),
     pipelines: isCommercial(ctx) ? await loadPipelines(q) : [],
+    openDeals: new Map(
+      (await q<{ pipeline_id: string; n: number }>(`select pipeline_id, count(*)::int as n from deals where status = 'open' group by pipeline_id`)).rows.map((r) => [r.pipeline_id, r.n]),
+    ),
     types: (await q<{ id: string; name: string; kind: string }>(`select id, name, kind from intervention_types where archived_at is null order by position, name`)).rows,
     principals: (
       await q<{ id: string; name: string; addresses: { label: string; email: string }[] }>(
@@ -40,7 +43,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const isOwner = ctx.role === 'owner';
   const me = data.members.find((m) => m.user_id === ctx.userId);
   const editable = isOwner ? data.members : me ? [me] : [];
-  const errorText = sp.erreur === 'vat' ? t.settings.vatInvalid : sp.erreur === 'owner' ? t.settings.ownerOnly : t.common.error;
+  const errorText = sp.erreur === 'vat' ? t.settings.vatInvalid : sp.erreur === 'owner' ? t.settings.ownerOnly : sp.erreur === 'inUse' ? t.settings.stepsInUse : t.common.error;
 
   const MemberForm = ({ m }: { m: Member }) => {
     const o = readOptions(m.options);
@@ -130,6 +133,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <input type="text" name="name" defaultValue={p.name} aria-label={t.settings.pipelineName} className="grow" required disabled={!isOwner} />
                 {isOwner && <button className="btn small" type="submit">{t.settings.rename}</button>}
               </form>
+              {isOwner && (data.openDeals.get(p.id) ?? 0) > 0 && (
+                <p className="faint">{t.settings.stepsLocked.replace('{n}', String(data.openDeals.get(p.id)))}</p>
+              )}
               <ol className="stack" style={{ margin: 0, paddingLeft: 0, listStyle: 'none', gap: 12 }}>
                 {p.steps.map((s, i) => (
                   <li key={s.id} className="stack" style={{ gap: 6 }}>
@@ -143,11 +149,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                       <div className="row" style={{ gap: 6, paddingLeft: 22 }}>
                         <button className="btn small" type="submit" form={`step-${s.id}`}>{t.common.save}</button>
                         <form action={moveStep}><input type="hidden" name="stepId" value={s.id} /><input type="hidden" name="dir" value="up" />
-                          <button className="btn small" type="submit" disabled={i === 0} aria-label={`${t.settings.moveUp} : ${s.label}`}>↑</button></form>
+                          <button className="btn small" type="submit" disabled={i === 0 || (data.openDeals.get(p.id) ?? 0) > 0} aria-label={`${t.settings.moveUp} : ${s.label}`}>↑</button></form>
                         <form action={moveStep}><input type="hidden" name="stepId" value={s.id} /><input type="hidden" name="dir" value="down" />
-                          <button className="btn small" type="submit" disabled={i === p.steps.length - 1} aria-label={`${t.settings.moveDown} : ${s.label}`}>↓</button></form>
+                          <button className="btn small" type="submit" disabled={i === p.steps.length - 1 || (data.openDeals.get(p.id) ?? 0) > 0} aria-label={`${t.settings.moveDown} : ${s.label}`}>↓</button></form>
                         <form action={archiveStep} style={{ marginLeft: 'auto' }}><input type="hidden" name="stepId" value={s.id} />
-                          <button className="btn small danger" type="submit" disabled={p.steps.length <= 1}>{t.settings.archiveStep}</button></form>
+                          <button className="btn small danger" type="submit" disabled={p.steps.length <= 1 || (data.openDeals.get(p.id) ?? 0) > 0}>{t.settings.archiveStep}</button></form>
                       </div>
                     )}
                   </li>

@@ -7,9 +7,11 @@ import { looksLikeArrival } from '@/modules/interventions/parts';
 import { parseEuroToCents } from '@/modules/interventions/pricing';
 import { extractTicketNumbers, normalizeTicket } from '@/modules/interventions/references';
 import { parseRequestEmail, type ParsedRequest } from '@/modules/interventions/request';
+import { getMessages, isLocale } from '@/i18n';
 import { requireCtx } from '../context';
 import { pgCode, type Q, withUser } from '../db';
 import { loadVisit } from '../interventions';
+import { renderReportPdf, SIGNATURE_NOT_REQUIRED } from '../pdf';
 import { saveBytes, saveFile } from '../storage';
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
@@ -298,24 +300,31 @@ export async function orderPart(formData: FormData) {
   back(`/interventions/${caseId}`, '?commande=1');
 }
 
+/** Réception d'une ligne : la quantité réellement reçue (par défaut, le reste attendu). */
 export async function receivePart(formData: FormData) {
   const ctx = await requireCtx();
   const caseId = str(formData, 'caseId');
+  const needId = str(formData, 'needId');
   await withUser(ctx.userId, async (q) => {
-    await receiveNeeds(q, ctx.orgId, caseId, formData.getAll('needId').map(String), str(formData, 'source') === 'email' ? 'email' : 'manual');
+    await receiveNeeds(q, ctx.orgId, caseId, [{ needId, quantity: Number(str(formData, 'quantity')) || null }], 'manual');
   });
   back(`/interventions/${caseId}`);
 }
 
-async function receiveNeeds(q: Q, orgId: string, caseId: string, needIds: string[], source: 'manual' | 'email') {
-  for (const needId of needIds) {
+/**
+ * Enregistre des réceptions confirmées ligne par ligne (relecture M03) : jamais plus que le reste
+ * attendu ; « quantity » absente = tout le reste. Le dossier ne revient « à planifier » que lorsque
+ * toutes les lignes actives sont entièrement reçues.
+ */
+async function receiveNeeds(q: Q, orgId: string, caseId: string, items: { needId: string; quantity: number | null }[], source: 'manual' | 'email') {
+  for (const { needId, quantity } of items) {
     const n = (await q<{ quantity: number; received: number }>(
       `select quantity, coalesce((select sum(quantity) from part_receipts where need_id = n.id), 0)::int as received from part_needs n where id = $1 and case_id = $2 and cancelled_at is null`,
       [needId, caseId],
     )).rows[0];
-    if (n && n.received < n.quantity) {
-      await q(`insert into part_receipts (organization_id, need_id, quantity, source) values ($1, $2, $3, $4)`, [orgId, needId, n.quantity - n.received, source]);
-    }
+    if (!n || n.received >= n.quantity) continue;
+    const qty = Math.min(n.quantity - n.received, quantity && quantity > 0 ? Math.floor(quantity) : n.quantity - n.received);
+    await q(`insert into part_receipts (organization_id, need_id, quantity, source) values ($1, $2, $3, $4)`, [orgId, needId, qty, source]);
   }
   // Toutes les pièces actives reçues → retour à planifier (M06).
   const pending = (await q<{ n: number }>(
@@ -380,7 +389,8 @@ export async function saveReportDraft(formData: FormData) {
 
 /**
  * Valide la version : calcule et fige durées et montants (par le code), enregistre la signature,
- * puis met en file un envoi par destinataire coché (clé d'idempotence = version + destinataire).
+ * produit et stocke les PDF (donneur d'ordre et client final), puis met en file un envoi par
+ * destinataire coché (clé d'idempotence = version + destinataire). Tout dans une transaction.
  */
 export async function validateReport(formData: FormData) {
   const ctx = await requireCtx();
@@ -402,10 +412,24 @@ export async function validateReport(formData: FormData) {
       const price = data!.pricing(rv);
       await q(
         `update report_versions set status = 'validated', validated_at = now(), validated_by = $2, presence_minutes = $3, billable_minutes = $4,
-                amount_excl_cents = $5, amount_incl_cents = $6, signature_path = $7, no_signature_reason = $8
+                amount_excl_cents = $5, amount_incl_cents = $6, signature_path = $7, no_signature_reason = $8,
+                pdf_path = null, client_pdf_path = null
          where id = $1`,
-        [id, ctx.userId, price.presenceMinutes, price.billableMinutes, price.amountExclCents, price.amountInclCents, sigPath, sigPath ? null : noSigReason ?? '—'],
+        [
+          id, ctx.userId, price.presenceMinutes, price.billableMinutes, price.amountExclCents, price.amountInclCents, sigPath,
+          // Option « signature » désactivée : motif fidèle, sans inventer un refus du client (relecture U01).
+          sigPath ? null : noSigReason ?? SIGNATURE_NOT_REQUIRED,
+        ],
       );
+      // PDF figés : une modification ultérieure (heures, tarif, logo, pièces) ne change plus ce rapport (D02).
+      const t = getMessages(isLocale(rv.language) ? rv.language : 'fr');
+      const paths: string[] = [];
+      for (const audience of ['principal', 'client'] as const) {
+        const pdf = await renderReportPdf(q, id, t, audience);
+        if (!pdf) throw new Error('pdf');
+        paths.push(await saveBytes(ctx.orgId, pdf, 'application/pdf'));
+      }
+      await q(`update report_versions set pdf_path = $2, client_pdf_path = $3 where id = $1`, [id, paths[0], paths[1]]);
       await q(`update service_visits set status = 'done' where id = $1 and status in ('planned', 'in_progress')`, [visitId]);
       // Destinataires cochés : « addr:<id> » (bureau du donneur d'ordre) ou « client ».
       const c = (await q<{ client_name: string; client_email: string | null; tickets: string | null; type_name: string }>(
@@ -418,6 +442,7 @@ export async function validateReport(formData: FormData) {
       for (const r of formData.getAll('recipient').map(String)) {
         let label = '';
         let email: string | null = null;
+        const audience = r === 'client' ? 'client' : 'principal';
         if (r === 'client') {
           label = c.client_name;
           email = c.client_email;
@@ -431,9 +456,14 @@ export async function validateReport(formData: FormData) {
           email = a.email;
         } else continue;
         await q(
-          `insert into outbound_messages (organization_id, case_id, report_version_id, kind, recipient_label, recipient_email, subject, body, idempotency_key)
-           values ($1, $2, $3, 'report_email', $4, $5, $6, $7, $8) on conflict (organization_id, idempotency_key) do nothing`,
-          [ctx.orgId, caseId, id, label, email, subject, [rv.done_text, rv.todo_text, rv.remarks].filter(Boolean).join('\n\n'), `report:${id}:${r}`],
+          `insert into outbound_messages (organization_id, case_id, report_version_id, kind, recipient_label, recipient_email, subject, body, idempotency_key, audience)
+           values ($1, $2, $3, 'report_email', $4, $5, $6, $7, $8, $9) on conflict (organization_id, idempotency_key) do nothing`,
+          [
+            ctx.orgId, caseId, id, label, email, subject,
+            // Les remarques du technicien vont au donneur d'ordre, jamais au client final (R02).
+            [rv.done_text, rv.todo_text, audience === 'principal' ? rv.remarks : null].filter(Boolean).join('\n\n'),
+            `report:${id}:${r}`, audience,
+          ],
         );
       }
       // Le dossier : en attente de pièces s'il en reste à recevoir, sinon prêt à clôturer.
@@ -471,7 +501,8 @@ export async function newReportVersion(formData: FormData) {
 export interface InboundDraft {
   subject: string;
   body: string;
-  matches: { id: string; label: string }[];
+  /** Dossiers proposés, avec les lignes encore attendues (à confirmer une par une). */
+  matches: { id: string; label: string; needs: { id: string; label: string; remaining: number }[] }[];
   arrival: boolean;
   duplicate: boolean;
 }
@@ -486,9 +517,14 @@ export async function integrateEmail(_: InboundDraft | null, formData: FormData)
   const fingerprint = createHash('sha256').update(`${str(formData, 'from')}\n${subject}\n${body}`).digest('hex');
   return withUser(ctx.userId, async (q) => {
     const matches = tickets.length
-      ? (await q<{ id: string; label: string }>(
-          `select distinct sc.id, c.name || ' · ' || r.number as label from case_references r join service_cases sc on sc.id = r.case_id
-           join clients c on c.id = sc.client_id where lower(trim(r.number)) = any($1::text[])`,
+      ? (await q<{ id: string; label: string; needs: { id: string; label: string; remaining: number }[] }>(
+          `select sc.id, min(c.name || ' · ' || r.number) as label,
+                  coalesce((select json_agg(json_build_object('id', n.id, 'label', n.designation || coalesce(' · ' || n.reference, ''),
+                                    'remaining', n.quantity - coalesce((select sum(quantity) from part_receipts pr where pr.need_id = n.id), 0)) order by n.created_at)
+                            from part_needs n where n.case_id = sc.id and n.cancelled_at is null
+                              and coalesce((select sum(quantity) from part_receipts pr where pr.need_id = n.id), 0) < n.quantity), '[]') as needs
+           from case_references r join service_cases sc on sc.id = r.case_id
+           join clients c on c.id = sc.client_id where lower(trim(r.number)) = any($1::text[]) group by sc.id`,
           [tickets],
         )).rows
       : [];
@@ -509,11 +545,12 @@ export async function attachEmail(formData: FormData) {
   const fingerprint = createHash('sha256').update(`${str(formData, 'from')}\n${subject}\n${body}`).digest('hex');
   await withUser(ctx.userId, async (q) => {
     await q(`update inbound_messages set status = 'attached', attached_case_id = $1 where fingerprint = $2`, [caseId, fingerprint]);
-    // Réception confirmée par le technicien uniquement (case cochée).
-    if (formData.get('confirmArrival')) {
-      const needs = (await q<{ id: string }>(`select id from part_needs where case_id = $1 and cancelled_at is null`, [caseId])).rows.map((r) => r.id);
-      await receiveNeeds(q, ctx.orgId, caseId, needs, 'email');
-    }
+    // « Pièce disponible » n'est pas « pièce reçue » : seules les lignes cochées, avec leur quantité (M03).
+    const items = formData
+      .getAll('receive')
+      .map(String)
+      .map((needId) => ({ needId, quantity: Number(str(formData, `qty:${needId}`)) || null }));
+    if (items.length) await receiveNeeds(q, ctx.orgId, caseId, items, 'email');
   });
   back(`/interventions/${caseId}`);
 }

@@ -147,6 +147,11 @@ export async function acceptInvitation(formData: FormData) {
 
 // ── Étapes de vente : chaque compte adapte ses pipelines à son métier (propriétaire uniquement). ──
 
+/** Affaires en cours sur le parcours (55006) : on ne déplace ni ne retire d'étape (relecture D01). */
+function stepError(e: unknown): never {
+  done(`?erreur=${pgCode(e) === '55006' ? 'inUse' : 'x'}#etapes`);
+}
+
 async function ownerCtx() {
   const ctx = await requireCtx();
   if (ctx.role !== 'owner') done('?erreur=owner#etapes');
@@ -225,7 +230,7 @@ export async function moveStep(formData: FormData) {
     [visible[i], visible[j]] = [visible[j]!, visible[i]!];
     const order = [...visible.map((s) => s.id), ...all.filter((s) => s.archived).map((s) => s.id)];
     await q(`select public.reorder_pipeline_steps($1, $2::uuid[])`, [pipelineId, order]);
-  });
+  }).catch(stepError);
   done('#etapes');
 }
 
@@ -239,6 +244,6 @@ export async function archiveStep(formData: FormData) {
     )).rows[0]!.n;
     if (left <= 1) return; // un pipeline garde au moins une étape
     await q(`update pipeline_steps set archived_at = now() where id = $1`, [str(formData, 'stepId')]);
-  });
+  }).catch(stepError);
   done('?ok=1#etapes');
 }

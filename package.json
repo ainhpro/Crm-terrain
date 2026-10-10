@@ -15,7 +15,8 @@
     "db:stop": "bash scripts/dev-db.sh stop",
     "db:reset": "bash scripts/dev-db.sh reset",
     "db:migrate": "bash scripts/dev-db.sh migrate",
-    "test:e2e": "node tests/e2e/parcours.mjs"
+    "test:e2e": "node tests/e2e/parcours.mjs",
+    "test:e2e:relecture": "node tests/e2e/relecture.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

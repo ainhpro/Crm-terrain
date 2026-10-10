@@ -117,10 +117,18 @@ export function detectSource(headers: string[]): CrmSource | null {
   return null;
 }
 
+/** Anomalies qui empêchent l'import de la ligne (codes traduits à l'écran). */
+export type ImportIssue = 'missingName' | 'invalidEmail' | 'tooLong';
+/** Avertissements : la ligne est importée, avec ce point signalé. */
+export type ImportWarning = 'unknownCategory' | 'forced';
+
 export interface ImportRow {
   line: number; // numéro de ligne dans le fichier (1 = en-tête)
   values: Partial<Record<TargetField, string>>;
-  issues: string[];
+  issues: ImportIssue[];
+  warnings: ImportWarning[];
+  /** Valeur de catégorie écartée (ex. « VIP »), montrée à l'utilisateur. */
+  droppedCategory?: string;
   duplicateOf: number | 'existing' | null;
   /**
    * Même client qu'une ligne précédente, mais avec une autre personne de contact (export « personnes »
@@ -148,10 +156,39 @@ export function dedupeKey(name: string, city?: string): string {
  * Applique la correspondance à toutes les lignes (pas seulement aux 10 premières) et dresse le bilan.
  * `existingKeys` : clés des clients déjà présents dans le compte.
  */
-export function buildImport(rows: string[][], mapping: Mapping, existingKeys: Set<string> = new Set()): ImportReport {
+/** Client déjà présent dans le compte, pour repérer les ressemblances. */
+export interface ExistingClient {
+  name: string;
+  city?: string | null;
+  address?: string | null;
+}
+
+export const MAX_COLUMNS = 200;
+export const MAX_CELL = 2000;
+
+/**
+ * Même établissement ? Même nom et même ville, et même adresse quand les deux en ont une
+ * (relecture I01 : deux homonymes d'une même ville à des adresses différentes restent deux clients).
+ * Ce n'est qu'une ressemblance proposée : l'utilisateur peut importer quand même (force).
+ */
+function sameClient(a: ExistingClient, b: ExistingClient): boolean {
+  if (dedupeKey(a.name, a.city ?? undefined) !== dedupeKey(b.name, b.city ?? undefined)) return false;
+  return !a.address || !b.address || normalizeHeader(a.address) === normalizeHeader(b.address);
+}
+
+export function buildImport(
+  rows: string[][],
+  mapping: Mapping,
+  existing: Set<string> | ExistingClient[] = [],
+  force: Set<number> = new Set(),
+): ImportReport {
   if (rows.length > MAX_ROWS) throw new Error(`Fichier trop volumineux : ${rows.length} lignes (maximum ${MAX_ROWS}).`);
   if (!mapping.includes('name')) throw new Error('Aucune colonne ne correspond au nom du client.');
-  const seen = new Map<string, number>();
+  // Ancienne forme (clés « nom|ville ») : adresse inconnue.
+  const known: ExistingClient[] = existing instanceof Set
+    ? [...existing].map((k) => ({ name: k.split('|')[0] ?? '', city: k.split('|')[1] ?? '' }))
+    : existing;
+  const seen: { client: ExistingClient; line: number }[] = [];
   const peopleByClient = new Map<string, Set<string>>();
   const out: ImportRow[] = [];
   let empty = 0;
@@ -174,20 +211,31 @@ export function buildImport(rows: string[][], mapping: Mapping, existingKeys: Se
       empty++;
       return;
     }
-    const issues: string[] = [];
-    if (!values.name) issues.push('nom manquant');
-    if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) issues.push('email invalide');
+    const issues: ImportIssue[] = [];
+    const warnings: ImportWarning[] = [];
+    let droppedCategory: string | undefined;
+    if (!values.name) issues.push('missingName');
+    if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) issues.push('invalidEmail');
+    if (Object.values(values).some((v) => v && v.length > MAX_CELL)) issues.push('tooLong');
     if (values.category) {
       const c = values.category.toUpperCase();
       if (['A', 'B', 'C'].includes(c)) values.category = c;
-      else issues.push('catégorie différente de A, B ou C');
+      else {
+        // Catégorie inconnue (« VIP ») : client importé sans catégorie, avec avertissement ; jamais transformée en C (I03).
+        droppedCategory = values.category;
+        delete values.category;
+        warnings.push('unknownCategory');
+      }
     }
     let duplicateOf: ImportRow['duplicateOf'] = null;
     if (values.name) {
-      const key = dedupeKey(values.name, values.city);
-      if (existingKeys.has(key)) duplicateOf = 'existing';
-      else if (seen.has(key)) duplicateOf = seen.get(key)!;
-      else seen.set(key, line);
+      const me: ExistingClient = { name: values.name, city: values.city, address: values.address };
+      if (known.some((k) => sameClient(k, me))) duplicateOf = 'existing';
+      else {
+        const prev = seen.find((x) => sameClient(x.client, me));
+        if (prev) duplicateOf = prev.line;
+        else seen.push({ client: me, line });
+      }
     }
     // Personne déjà vue pour ce client (première ligne ou contact ajouté) : vrai doublon.
     const who = [values.contact, values.email, values.phone].map((x) => normalizeHeader(x ?? '')).join('|');
@@ -199,7 +247,12 @@ export function buildImport(rows: string[][], mapping: Mapping, existingKeys: Se
       people.add(who);
       peopleByClient.set(key, people);
     }
-    out.push({ line, values, issues, duplicateOf, extraContact });
+    if (duplicateOf !== null && !extraContact && force.has(line) && issues.length === 0) {
+      duplicateOf = null;
+      warnings.push('forced');
+      seen.push({ client: { name: values.name!, city: values.city, address: values.address }, line });
+    }
+    out.push({ line, values, issues, warnings, duplicateOf, extraContact, ...(droppedCategory ? { droppedCategory } : {}) });
   });
   return {
     rows: out,

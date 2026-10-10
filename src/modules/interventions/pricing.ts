@@ -22,7 +22,13 @@ export interface PricingInput {
 }
 
 export interface PricingResult {
+  /** Présence cumulée des intervenants (départ − arrivée). */
   presenceMinutes: number;
+  /** Pauses déduites. */
+  breakMinutes?: number;
+  /** Temps travaillé réel (présence − pauses), avant arrondi. */
+  workedMinutes?: number;
+  /** Durée retenue : le temps travaillé total, arrondi une seule fois. */
   billableMinutes: number;
   amountExclCents: number | null;
   amountInclCents: number | null;
@@ -52,12 +58,14 @@ export function withVat(exclCents: number, vatRateBp: number): number {
 }
 
 /**
- * Calcule le prix d'un passage. Plusieurs intervenants : leurs durées s'additionnent,
- * chacune arrondie séparément (règle simple, réglable plus tard).
+ * Calcule le prix d'un passage. Plusieurs intervenants : leurs temps travaillés s'additionnent
+ * (deux personnes = deux fois le temps), puis le total est arrondi UNE fois au multiple supérieur
+ * (relecture M04 : deux séquences de 7 min font 14 min, retenues 15 min au quart d'heure, pas 30).
  */
 export function priceVisit(workers: WorkerTime[], input: PricingInput): PricingResult {
   const presence = workers.reduce((s, w) => s + presenceMinutes(w), 0);
-  const billable = workers.reduce((s, w) => s + roundUp(workedMinutes(w), input.roundingMinutes), 0);
+  const worked = workers.reduce((s, w) => s + workedMinutes(w), 0);
+  const billable = roundUp(worked, input.roundingMinutes);
   let excl: number | null = null;
   if (input.mode === 'hourly') {
     const rate = input.hourlyRateCents ?? 0;
@@ -67,6 +75,8 @@ export function priceVisit(workers: WorkerTime[], input: PricingInput): PricingR
   }
   return {
     presenceMinutes: presence,
+    breakMinutes: presence - worked,
+    workedMinutes: worked,
     billableMinutes: billable,
     amountExclCents: excl,
     amountInclCents: excl === null ? null : withVat(excl, input.vatRateBp),

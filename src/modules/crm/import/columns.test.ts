@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildImport, detectSource, proposeMapping } from './columns';
+import { buildImport, detectSource, parseCsv, proposeMapping } from './columns';
 import { pipelineCodeFromName, STANDARD_PIPELINE, stepCodeFromLabel } from '../templates/standard';
 
 describe('import depuis un autre CRM', () => {
@@ -85,5 +85,47 @@ describe('export « une ligne par personne »', () => {
     expect(r.rows.map((x) => x.extraContact)).toEqual([false, true, false]);
     expect(r.extraContacts).toBe(1);
     expect(r.duplicates).toBe(1); // la ligne identique reste un doublon
+  });
+});
+
+describe('relecture I01 / I03 : ressemblances et catégories', () => {
+  const m = ['name', 'address', 'city', 'category'] as const;
+
+  it('deux homonymes d’une même ville à des adresses différentes restent deux clients', () => {
+    const r = buildImport(
+      [
+        ['Boulangerie Martin', 'Rue Haute 5', 'Namur', 'A'],
+        ['Boulangerie Martin', 'Place Verte 2', 'Namur', 'B'],
+      ],
+      [...m],
+      [{ name: 'Boulangerie Martin', city: 'Namur', address: 'Chaussée de Liège 40' }],
+    );
+    expect(r.rows.map((x) => x.duplicateOf)).toEqual([null, null]);
+    expect(r.valid).toBe(2);
+  });
+
+  it('sans adresse pour trancher : ressemblance signalée, et l’utilisateur peut importer quand même', () => {
+    const rows = [['Boulangerie Martin', '', 'Namur', 'A']];
+    const existing = [{ name: 'Boulangerie Martin', city: 'Namur', address: 'Rue Haute 5' }];
+    expect(buildImport(rows, [...m], existing).rows[0]!.duplicateOf).toBe('existing');
+    const forced = buildImport(rows, [...m], existing, new Set([2]));
+    expect(forced.rows[0]!.duplicateOf).toBeNull();
+    expect(forced.rows[0]!.warnings).toEqual(['forced']);
+    expect(forced.valid).toBe(1);
+  });
+
+  it('« VIP » n’empêche pas l’import et ne devient pas C', () => {
+    const r = buildImport([['Garage Lambert', '', 'Liège', 'VIP']], [...m]);
+    expect(r.valid).toBe(1);
+    expect(r.rows[0]!.values.category).toBeUndefined();
+    expect(r.rows[0]!.droppedCategory).toBe('VIP');
+  });
+
+  it('une cellule démesurée est refusée, accents et zéros initiaux des CSV préservés', () => {
+    const csv = '﻿Nom;Ville;Code postal;Téléphone\n"Société ""Élan"" ; fils";Liège;0400;0470 12 34 56\n';
+    const [h, ...rows] = parseCsv(csv) as [string[], ...string[][]];
+    const r = buildImport(rows, proposeMapping(h));
+    expect(r.rows[0]!.values).toEqual({ name: 'Société "Élan" ; fils', city: 'Liège', postalCode: '0400', phone: '0470 12 34 56' });
+    expect(buildImport([['x'.repeat(5000)]], ['name']).rows[0]!.issues).toEqual(['tooLong']);
   });
 });

@@ -5,8 +5,16 @@ import { formatEuro, formatMinutes, priceForRecipient } from '@/modules/interven
 import type { Q } from './db';
 import { readStored } from './storage';
 
-/** Rapport d'intervention en PDF, à partir d'une version validée (montants figés, jamais recalculés ici). */
-export async function renderReportPdf(q: Q, versionId: string, t: Messages): Promise<Uint8Array | null> {
+/** Motif enregistré quand l'option « signature » est désactivée pour le technicien (relecture U01). */
+export const SIGNATURE_NOT_REQUIRED = 'not_required';
+
+/**
+ * Rapport d'intervention en PDF, à partir d'une version validée (montants figés, jamais recalculés ici).
+ * Produit à la validation puis stocké (relecture D02) ; deux publics (R02) :
+ * - « principal » : donneur d'ordre ou usage interne, avec les remarques du technicien ;
+ * - « client » : client final, sans remarques internes et sans tarif négocié.
+ */
+export async function renderReportPdf(q: Q, versionId: string, t: Messages, audience: 'principal' | 'client' = 'principal'): Promise<Uint8Array | null> {
   const r = (
     await q<{
       version: number; done_text: string | null; todo_text: string | null; remarks: string | null; pricing_mode: string;
@@ -140,15 +148,15 @@ export async function renderReportPdf(q: Q, versionId: string, t: Messages): Pro
     section(t.visit.todo);
     text(r.todo_text);
   }
-  if (r.remarks) {
+  if (r.remarks && audience === 'principal') {
     section(t.visit.remarks);
     text(r.remarks);
   }
 
-  // Prix : le document générique montre le montant adapté au payeur (R02).
+  // Prix : le montant que ce public peut voir (R02).
   const shown = priceForRecipient(
     { presenceMinutes: r.presence_minutes ?? 0, billableMinutes: r.billable_minutes ?? 0, amountExclCents: r.amount_excl_cents, amountInclCents: r.amount_incl_cents },
-    r.payer === 'client' ? 'client' : 'principal',
+    audience,
     r.payer,
   );
   if (shown) {
@@ -170,7 +178,7 @@ export async function renderReportPdf(q: Q, versionId: string, t: Messages): Pro
       text('—');
     }
   } else {
-    text(`${t.pdf.noSignature} : ${r.no_signature_reason ?? '—'}`);
+    text(r.no_signature_reason === SIGNATURE_NOT_REQUIRED ? t.pdf.signatureNotRequired : `${t.pdf.noSignature} : ${r.no_signature_reason ?? '—'}`);
   }
   text(dt(r.validated_at), { size: 9, color: muted });
 

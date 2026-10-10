@@ -148,7 +148,12 @@ export default async function VisitPage({ params, searchParams }: { params: Prom
                   <span>{t.visit.version} {rv.version}</span>
                   <small>{rv.status === 'validated' ? `${t.visit.validated} · ${formatDate(rv.validated_at, locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }, ctx.timezone)}` : t.visit.draft}</small>
                 </span>
-                {rv.status === 'validated' && <a className="btn small" href={`/rapports/${rv.id}/pdf`} target="_blank">{t.visit.pdf}</a>}
+                {rv.status === 'validated' && (
+                  <span className="row" style={{ gap: 6 }}>
+                    <a className="btn small" href={`/rapports/${rv.id}/pdf`} target="_blank">{t.visit.pdf}</a>
+                    <a className="btn small" href={`/rapports/${rv.id}/pdf?pour=client`} target="_blank">{t.visit.pdfClient}</a>
+                  </span>
+                )}
               </div>
             ))}
           </div>

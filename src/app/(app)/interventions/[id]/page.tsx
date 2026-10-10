@@ -102,9 +102,11 @@ export default async function CasePage({ params, searchParams }: { params: Promi
                           <button className="btn small" type="submit">{t.parts.order}</button>
                         </form>
                       )}
-                      <form action={receivePart}>
+                      <form action={receivePart} className="row" style={{ gap: 6 }}>
                         <input type="hidden" name="caseId" value={c.id} />
                         <input type="hidden" name="needId" value={n.id} />
+                        <input type="number" name="quantity" min={1} max={n.quantity - n.received} defaultValue={n.quantity - n.received}
+                          aria-label={t.parts.receivedQty} style={{ width: 72, minHeight: 38 }} />
                         <button className="btn small primary" type="submit">{t.parts.receive}</button>
                       </form>
                       <form action={cancelPartNeed}>

@@ -22,17 +22,30 @@ export type Q = <R extends pg.QueryResultRow = pg.QueryResultRow>(sql: string, p
 
 async function inTransaction<T>(setup: (c: pg.PoolClient) => Promise<void>, fn: (q: Q) => Promise<T>): Promise<T> {
   const client = await pool().connect();
+  let broken: Error | undefined;
   try {
     await client.query('begin');
     await setup(client);
-    const result = await fn((sql, params) => client.query(sql, params as unknown[]));
+    // Une connexion n'exécute qu'une requête à la fois : les appels lancés en parallèle (Promise.all)
+    // sont mis en file, dans l'ordre, au lieu d'être superposés sur la même connexion.
+    let queue: Promise<unknown> = Promise.resolve();
+    const q = (<R extends pg.QueryResultRow>(sql: string, params?: unknown[]) => {
+      const run = queue.then(() => client.query<R>(sql, params));
+      queue = run.catch(() => undefined);
+      return run;
+    }) as Q;
+    const result = await fn(q);
     await client.query('commit');
     return result;
   } catch (err) {
-    await client.query('rollback').catch(() => undefined);
+    // Rôle et claims sont « set local » : l'annulation les efface. Si l'annulation elle-même échoue,
+    // la connexion est détruite au lieu de retourner dans le groupe (relecture S03).
+    await client.query('rollback').catch((e: Error) => {
+      broken = e;
+    });
     throw err;
   } finally {
-    client.release();
+    client.release(broken);
   }
 }
 

@@ -3,8 +3,10 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 
 /**
- * Session signée (HMAC). En production, la connexion passera par Supabase Auth ;
- * en développement (AUTH_MODE=dev), une connexion par email suffit.
+ * Session signée (HMAC) de la connexion de DÉVELOPPEMENT uniquement (AUTH_MODE=dev) : l'email seul
+ * suffit, sans preuve de possession de l'adresse. Elle ne vaut rien ailleurs : hors développement,
+ * aucun cookie n'est accepté, même correctement signé (relecture S02). En production, la connexion
+ * passera par Supabase Auth (lien envoyé par email), qui remplacera ce fichier.
  */
 
 const COOKIE = 'crm_session';
@@ -36,6 +38,7 @@ export async function clearSession(): Promise<void> {
 }
 
 export async function sessionUserId(): Promise<string | null> {
+  if (!devAuthEnabled()) return null;
   const raw = (await cookies()).get(COOKIE)?.value;
   if (!raw) return null;
   const dot = raw.lastIndexOf('.');
@@ -47,6 +50,10 @@ export async function sessionUserId(): Promise<string | null> {
   return /^[0-9a-f-]{36}$/i.test(id) ? id : null;
 }
 
+/**
+ * Connexion de développement : seulement sur un poste de développement. Refusée en production
+ * (next start / build), sur Vercel (y compris les prévisualisations) et sur tout environnement exposé.
+ */
 export function devAuthEnabled(): boolean {
-  return process.env.AUTH_MODE === 'dev' && process.env.NODE_ENV !== 'production';
+  return process.env.AUTH_MODE === 'dev' && process.env.NODE_ENV !== 'production' && !process.env.VERCEL && !process.env.VERCEL_ENV;
 }

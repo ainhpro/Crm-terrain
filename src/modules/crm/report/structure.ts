@@ -10,6 +10,10 @@ export interface StepOption {
   id: string;
   code: string;
   label: string;
+  /** Affaire de l'étape : deux affaires différentes qui correspondent = ambiguïté, on demande. */
+  group?: string;
+  /** Libellé de l'étape seul (sans le nom de l'affaire), pour la reconnaissance. */
+  stepLabel?: string;
 }
 
 export interface ProposedTask {
@@ -21,8 +25,13 @@ export interface ProposedTask {
 export interface ProposedReport {
   summary: string;
   tasks: ProposedTask[];
+  /** Étape proposée comme terminée : seulement si une seule affaire correspond. */
   stepDone: StepOption | null;
   stepSource: string | null;
+  /** Plusieurs affaires correspondent : l'utilisateur choisit (rien n'est pré-coché). */
+  candidates: StepOption[];
+  /** Phrases qui citent une étape sans la dire faite (négation, futur) : non retenues, montrées. */
+  notDone: string[];
 }
 
 const MONTHS: Record<string, number> = {
@@ -60,7 +69,18 @@ export function findDate(sentence: string, today: IsoDate): IsoDate | null {
 const TASK_CUES = /\b(il faut|je dois|on doit|a faire|rappeler|relancer|envoyer|planifier|prevoir|passer|commander|preparer|moet|moeten|bellen|sturen|plannen|opvolgen|langsgaan)\b/;
 const DONE_CUES = /\b(confirme|confirmee|valide|validee|signe|signee|fait|faite|termine|terminee|envoye|envoyee|passe|passee|recu|recue|bevestigd|getekend|gedaan|verstuurd|geplaatst|afgerond)\b/;
 
-/** Découpe le texte en phrases, propose tâches et étape terminée. */
+// « Je n'ai pas envoyé l'offre », « l'offre sera envoyée », « de offerte is nog niet verstuurd » : pas fait.
+const NEGATION = /(\bn['’]|\bne\b|\bpas\b|\bjamais\b|\bniet\b|\bgeen\b|\bnooit\b|\bnog niet\b)/;
+const FUTURE = /\b(va|vais|vas|vont|allons|allez|sera|seront|serait|devrait|devra|doit|doivent|pourrait|bientot|zal|zullen|gaat|gaan|moet|moeten|binnenkort)\b/;
+// Mots trop généraux pour reconnaître une étape à eux seuls.
+const GENERIC = new Set(['premier', 'premiere', 'eerste', 'mise', 'jour', 'etape', 'stap', 'avec', 'pour', 'voor']);
+
+function keywordOf(label: string): string {
+  const words = plain(label).split(/[\s/()]+/).filter((w) => w.length > 3 && !GENERIC.has(w));
+  return words[0] ?? plain(label);
+}
+
+/** Découpe le texte en phrases, propose tâches et étape terminée (sans jamais trancher une ambiguïté). */
 export function structureReport(text: string, steps: StepOption[], today: IsoDate): ProposedReport {
   const sentences = text
     .replace(/\s+/g, ' ')
@@ -75,24 +95,37 @@ export function structureReport(text: string, steps: StepOption[], today: IsoDat
     }
   }
 
-  let stepDone: StepOption | null = null;
-  let stepSource: string | null = null;
+  // Par affaire : l'étape la plus avancée dite faite.
+  const best = new Map<string, { step: StepOption; source: string }>();
+  const notDone: string[] = [];
   for (const sentence of sentences) {
     const p = plain(sentence);
     if (!DONE_CUES.test(p)) continue;
-    // L'étape la plus avancée mentionnée comme faite.
-    for (const step of steps) {
-      const label = plain(step.label);
-      const keyword = label.split(/\s+/).find((w) => w.length > 3) ?? label;
-      if (p.includes(plain(step.code).replace(/_/g, ' ')) || p.includes(keyword)) {
-        if (!stepDone || steps.indexOf(step) > steps.indexOf(stepDone)) {
-          stepDone = step;
-          stepSource = sentence;
-        }
-      }
+    const matching = steps.filter((step) => {
+      const code = plain(step.code).replace(/_/g, ' ');
+      return (code.length > 2 && new RegExp(`\\b${code}\\b`).test(p)) || p.includes(keywordOf(step.stepLabel ?? step.label));
+    });
+    if (!matching.length) continue;
+    if (NEGATION.test(p) || FUTURE.test(p)) {
+      notDone.push(sentence);
+      continue;
+    }
+    for (const step of matching) {
+      const g = step.group ?? '';
+      const current = best.get(g);
+      if (!current || steps.indexOf(step) > steps.indexOf(current.step)) best.set(g, { step, source: sentence });
     }
   }
+  const found = [...best.values()];
+  const single = found.length === 1 ? found[0]! : null;
 
   const summary = sentences.filter((s) => !tasks.some((t) => t.source === s)).slice(0, 3).join(' ') || sentences.slice(0, 2).join(' ');
-  return { summary, tasks, stepDone, stepSource };
+  return {
+    summary,
+    tasks,
+    stepDone: single?.step ?? null,
+    stepSource: single?.source ?? (found.length > 1 ? found[0]!.source : null),
+    candidates: found.length > 1 ? found.map((f) => f.step) : [],
+    notDone,
+  };
 }

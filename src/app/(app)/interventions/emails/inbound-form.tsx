@@ -27,8 +27,17 @@ export function InboundForm({ t }: { t: Messages }) {
               <input type="hidden" name="from" value={from} />
               <span className="label">{t.interventions.suggested}</span>
               <b>{m.label}</b>
-              {draft.arrival && (
-                <label className="row"><input type="checkbox" name="confirmArrival" value="1" />{t.interventions.arrivalDetected}</label>
+              {m.needs.length > 0 && (
+                <fieldset className="stack" style={{ gap: 6 }}>
+                  <legend>{draft.arrival ? t.interventions.arrivalDetected : t.interventions.receiveFromEmail}</legend>
+                  {m.needs.map((n) => (
+                    <div key={n.id} className="row">
+                      <label className="row grow"><input type="checkbox" name="receive" value={n.id} />{n.label}</label>
+                      <input type="number" name={`qty:${n.id}`} min={1} max={n.remaining} defaultValue={n.remaining}
+                        aria-label={`${t.parts.receivedQty} : ${n.label}`} style={{ width: 72, minHeight: 38 }} />
+                    </div>
+                  ))}
+                </fieldset>
               )}
               <button className="btn primary" type="submit">{t.interventions.attach}</button>
             </form>

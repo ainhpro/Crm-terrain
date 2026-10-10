@@ -7,6 +7,7 @@ import { formatEuro, formatMinutes, parseEuroToCents, priceVisit, type PricingMo
 import { saveReportDraft, validateReport } from '@/server/actions/interventions';
 import type { ReportVersionRow } from '@/server/interventions';
 import { SignaturePad } from '@/app/signature';
+import { DraftKeeper } from '@/app/drafts';
 
 type Worker = { arrivedAt: string | null; leftAt: string | null; breakMinutes: number };
 
@@ -37,18 +38,19 @@ export function ReportEditor({
   const canValidate = !options.signature || signature || reason.trim();
 
   return (
-    <form className="stack">
+    <form className="stack" id={`rapport-${visitId}`}>
+      <DraftKeeper formId={`rapport-${visitId}`} storageKey={`rapport:${visitId}`} restoredLabel={t.common.draftRestored} />
       <input type="hidden" name="caseId" value={caseId} />
       <input type="hidden" name="visitId" value={visitId} />
-      <label className="field"><span style={{ color: 'var(--ok)', fontWeight: 600 }}>{t.visit.done}</span><textarea name="done" rows={3} defaultValue={base?.done_text ?? ''} /></label>
+      <label className="field"><span style={{ color: 'var(--ok)', fontWeight: 600 }}>{t.visit.done}</span><textarea data-draft name="done" rows={3} defaultValue={base?.done_text ?? ''} /></label>
       {toOrder.length > 0 && (
         <div className="card pad" style={{ borderColor: 'var(--warn-line)' }}>
           <span className="label" style={{ color: 'var(--warn)' }}>{t.visit.toOrder}</span>
           <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>{toOrder.map((x, i) => <li key={i}>{x}</li>)}</ul>
         </div>
       )}
-      <label className="field"><span style={{ color: 'var(--accent)', fontWeight: 600 }}>{t.visit.todo}</span><textarea name="todo" rows={2} defaultValue={base?.todo_text ?? ''} /></label>
-      <label className="field">{t.visit.remarks}<textarea name="remarks" rows={2} defaultValue={base?.remarks ?? ''} /></label>
+      <label className="field"><span style={{ color: 'var(--accent)', fontWeight: 600 }}>{t.visit.todo}</span><textarea data-draft name="todo" rows={2} defaultValue={base?.todo_text ?? ''} /></label>
+      <label className="field">{t.visit.remarks}<textarea data-draft name="remarks" rows={2} defaultValue={base?.remarks ?? ''} /></label>
 
       {options.pricing && (
         <fieldset className="card pad stack">
@@ -72,8 +74,18 @@ export function ReportEditor({
           {mode !== 'none' && (
             <>
               <label className="field">{t.visit.vat}<input type="text" inputMode="decimal" name="vat" value={vat} onChange={(e) => setVat(e.target.value)} /></label>
+              {mode === 'hourly' && (
+                // Détail du calcul (relecture M04) : présence, pauses, temps réel, durée retenue, taux.
+                <dl className="small num" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 12px', margin: 0 }}>
+                  <dt>{t.visit.presence}</dt><dd style={{ margin: 0 }}>{formatMinutes(price.presenceMinutes)}</dd>
+                  <dt>{t.visit.breaksDeducted}</dt><dd style={{ margin: 0 }}>− {formatMinutes(price.breakMinutes ?? 0)}</dd>
+                  <dt>{t.visit.worked}</dt><dd style={{ margin: 0 }}>{formatMinutes(price.workedMinutes ?? 0)}</dd>
+                  <dt>{t.visit.billable} ({t.visit.roundedTo.replace('{n}', rounding)})</dt><dd style={{ margin: 0 }}><b>{formatMinutes(price.billableMinutes)}</b></dd>
+                  <dt>{t.visit.rate}</dt><dd style={{ margin: 0 }}>{euro(parseEuroToCents(rate) ?? 0)}</dd>
+                </dl>
+              )}
               <div className="row small">
-                <span className="grow">{t.visit.computed}{mode === 'hourly' ? ` · ${t.visit.billable} ${formatMinutes(price.billableMinutes)}` : ''}</span>
+                <span className="grow">{t.visit.computed}</span>
                 <b className="num">{euro(price.amountExclCents)} HTVA · {euro(price.amountInclCents)}</b>
               </div>
               {mode === 'hourly' && workers.every((w) => !w.leftAt) && <p className="faint">{t.visit.noWorkerTime}</p>}
