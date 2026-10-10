@@ -34,6 +34,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | Transcription | Service vocal FR/NL/IT, hébergé en Europe de préférence (à choisir) |
 | Cartes | Google Maps Platform |
 | Agendas (V2) | Google Calendar API, Microsoft Graph |
+| Stockage des rapports | Copie automatique des PDF dans OneDrive (Microsoft Graph) et Google Drive (API Drive) |
 | Emails | Brevo |
 | Paiement | Stripe Billing (carte, Bancontact, SEPA) |
 | Traductions | Fichiers de langue FR / NL (IT ajouté sans toucher au code) |
@@ -98,4 +99,4 @@ docs/                    cahier des charges, prototype, analyses
 
 ## Questions ouvertes
 
-Nom du produit et domaine · copie des rapports PDF dans un dossier du PC ou non · outils de facturation à connecter en premier · SMS ou email pour prévenir le client · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».
+Nom du produit et domaine · outils de facturation à connecter en premier · SMS ou email pour prévenir le client · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».

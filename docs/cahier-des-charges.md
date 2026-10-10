@@ -96,7 +96,7 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 **Réglages de départ (une fois, modifiables dans Réglages)** :
 
 - **Types d'intervention** : liste par compte, avec des modèles proposés (SAV, prise de mesure, placement showroom) et des types libres (ex. « Intervention Culligan »). Chaque type peut avoir ses propres champs (garantie pour un SAV, mesures pour une prise de mesure, produits installés pour un placement).
-- **Donneurs d'ordre** : beaucoup de techniciens sont indépendants et travaillent pour plusieurs fournisseurs ou marques. Pour chacun : nom, adresse(s) email où envoyer les rapports, envoi automatique oui/non, type d'intervention par défaut. « Client particulier » reste possible sans donneur d'ordre.
+- **Donneurs d'ordre** : beaucoup de techniciens sont indépendants et travaillent pour plusieurs fournisseurs ou marques. Pour chacun : nom, une ou plusieurs adresses email nommées par service ou gamme de produits (ex. INDA : « parois de douche », « meubles » ; Culligan : « bureau »), type d'intervention par défaut. « Client particulier » reste possible sans donneur d'ordre.
 - **Numéros de tickets facultatifs** : une intervention peut porter un ou plusieurs numéros de tickets (ceux du donneur d'ordre). Jamais obligatoires ; lus dans l'objet du mail quand ils existent, sinon saisis ou laissés vides.
 
 **Placement showroom** : le technicien photographie les produits installés et note les numéros de tickets (facultatifs) ; le rapport de placement part au donneur d'ordre et au showroom après validation.
@@ -110,9 +110,9 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 - au forfait : montant saisi pour l'intervention.
 Montants HTVA, calculés par le code, jamais par l'IA. Ce n'est pas une facture : le montant est repris par l'outil de facturation.
 
-**Email automatique** : à la validation du rapport, l'email au donneur d'ordre est rédigé automatiquement (objet avec le numéro de ticket, résumé, lignes à commander, remarques du technicien, rapport PDF et photos en pièces jointes). Le technicien peut le relire et le modifier, puis l'envoie.
+**Email automatique** : à la validation du rapport, l'email est rédigé automatiquement (objet avec le numéro de ticket, résumé, lignes à commander, remarques du technicien, rapport PDF et photos en pièces jointes). Le technicien coche les destinataires : le bureau concerné du fournisseur (ex. INDA parois de douche ou INDA meubles, Culligan), le client final, ou plusieurs à la fois. Le bon bureau est proposé d'office selon le donneur d'ordre, le type d'intervention et le produit. Il peut relire et modifier l'email, puis l'envoie.
 
-**Dossiers synchronisés et recherche** : tous les rapports et dossiers sont les mêmes sur le téléphone et sur le PC (même compte, synchronisation automatique). Recherche par numéro de ticket, client, adresse, référence de pièce ou date ; chaque dossier garde son historique complet (demande, rapports, emails envoyés, commandes, photos).
+**Dossiers synchronisés et recherche** : tous les rapports et dossiers sont les mêmes sur le téléphone et dans le navigateur du PC (même compte, synchronisation automatique). Chaque rapport PDF (et ses photos) est aussi copié automatiquement dans OneDrive et/ou Google Drive, au choix du technicien, dans un dossier par donneur d'ordre et par ticket. Recherche par numéro de ticket, client, adresse, référence de pièce ou date ; chaque dossier garde son historique complet (demande, rapports, emails envoyés, commandes, photos).
 
 **Envoi automatique** : une fois le bon d'intervention validé par le technicien (un geste), il part sans autre action au donneur d'ordre, au client s'il le faut et vers la facturation. Aucun envoi sans cette validation.
 
@@ -318,6 +318,8 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 - Une seule application, deux profils (commercial, technicien) ; le client choisit une seule fois à l'inscription, « les deux » possible ; changement ensuite uniquement dans Réglages › Profil ; les deux profils sont disponibles dès le lancement.
 - Pas de facture dans l'outil : bon d'intervention, puis envoi vers l'outil de facturation existant.
 - Nouvelle présentation sobre et professionnelle (maquette), pas celle du prototype.
+- PC : application dans le navigateur, plus copie automatique des rapports PDF dans OneDrive et Google Drive.
+- Destinataires des rapports choisis à chaque envoi : bureau du fournisseur (adresse par service), client final, ou les deux.
 
 ## Questions ouvertes
 
@@ -327,4 +329,3 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 - Fournisseur de transcription vocale à retenir.
 - Outils de facturation à connecter en premier (Teamleader, Odoo, autre ?) et format d'envoi du bon d'intervention.
 - Prévenir le client du rendez-vous : email seulement, ou aussi SMS ?
-- Synchronisation PC : l'application dans le navigateur du PC suffit-elle, ou faut-il aussi une copie automatique des rapports PDF dans un dossier (OneDrive, Google Drive) ?
