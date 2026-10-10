@@ -27,6 +27,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+/* La barre de navigation fixe ne doit jamais masquer le champ vers lequel on défile. */
+html { scroll-padding-bottom: 120px; scroll-padding-top: 16px; }
 body { background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--font); -webkit-text-size-adjust: 100%; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3 { margin: 0; text-wrap: balance; }
