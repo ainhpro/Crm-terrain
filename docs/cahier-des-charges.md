@@ -1,12 +1,16 @@
 # Cahier des charges — CRM commercial terrain
 
-Version du 10 octobre 2026 · @Ainhpro
+Version du 10 octobre 2026 · @Ainhpro · mise à jour : deux profils (commercial et technicien), parcours d'accueil, maquette validée en cours
 
 ## Vision et cible
 
 Une application qui fait gagner une journée par semaine au commercial terrain indépendant : il importe ses clients, l'outil planifie ses tournées, il dicte ses rapports, et les relances partent toutes seules.
 
-- **Utilisateur cible** : commercial terrain seul ou en petite équipe (1 à 3 personnes). Agents multicartes, représentants de marques qui visitent des showrooms, distributeurs, installateurs ou magasins. Aujourd'hui, il travaille avec Excel, un carnet et sa mémoire.
+- **Utilisateurs cibles** : une seule application, deux profils choisis à l'inscription (modifiables à tout moment) :
+  - **Commercial terrain** seul ou en petite équipe (1 à 3 personnes) : agents multicartes, représentants de marques qui visitent des showrooms, distributeurs, installateurs ou magasins. Clients réguliers, visites récurrentes, relances.
+  - **Technicien / SAV** : intervient chez des clients, souvent des particuliers, sur demande (email, rapport, appel). Photos, heures d'arrivée et de départ, rapport vocal, bon d'intervention.
+  - **Les deux** : l'artisan qui vend et intervient lui-même.
+  - Aujourd'hui, tous travaillent avec Excel, un carnet et leur mémoire.
 - **Marché** : Belgique (francophone et néerlandophone), Luxembourg, puis France.
 - **Promesse en une phrase** : « Tu sors de chez le client, tu parles une minute, et tout est à jour. »
 
@@ -17,6 +21,8 @@ Une application qui fait gagner une journée par semaine au commercial terrain i
 - Modules reliés au même fichier clients : tournées, rapports, offres, notes de frais, prospection.
 - Prix et simplicité adaptés à un indépendant, pas à une PME de 50 personnes.
 
+**Principe de conception** : simple, utile, très professionnel. On ne reprend pas la présentation du prototype, seulement sa logique métier. Maquette de référence : https://claude.ai/artifact/3Toq3BYmhz39pY6EpjJz6U
+
 **Premier utilisateur** : Fabrice, avec ses données INDA (FACQ, STG, SAMO). Le prototype actuel sert de référence fonctionnelle.
 
 ## Périmètre par phases
@@ -25,12 +31,12 @@ La V1 doit suffire à faire payer trois commerciaux testeurs ; le reste vient se
 
 | Phase | Contenu | Objectif de sortie |
 |---|---|---|
-| V1 — Socle | Comptes, clients, import Excel, pipelines configurables, rapport vocal, tâches, email du matin, relances, FR + NL | Fabrice utilise l'outil chaque jour à la place du prototype ; 3 testeurs payants |
+| V1 — Socle | Comptes, choix du profil, clients (import de tout fichier ou ajout à la main), pipelines configurables, rapport vocal, tâches, email du matin, relances, interventions technicien (demande depuis un email, photos, heures, bon d'intervention), FR + NL | Fabrice utilise l'outil chaque jour à la place du prototype ; 3 testeurs payants |
 | V2 — Route | Planning de tournées, synchro Google Agenda et Outlook, notes de frais (tickets + kilomètres) | Planning hebdomadaire proposé et validé en moins de 10 minutes |
 | V3 — Vente | Module offres (catalogue importé, modèle d'offre, PDF), suivi des offres | Une offre envoyée depuis le téléphone en moins de 5 minutes |
 | V4 — Croissance | Module prospection (listes, emailing, séquences), connexions API (Teamleader, Odoo…), italien | Ouverture France et premières équipes de 2–3 commerciaux |
 
-**Hors périmètre** : facturation, comptabilité, gestion de stock. L'outil s'arrête à l'offre ; la facture reste chez le comptable ou dans un outil dédié.
+**Hors périmètre** : facturation, comptabilité, gestion de stock. L'outil s'arrête à l'offre (commercial) et au bon d'intervention (technicien). La facture est faite dans l'outil de facturation existant (Teamleader, Odoo, comptable…) : l'application lui envoie le bon d'intervention en un geste. En Belgique, la facture électronique via Peppol est obligatoire entre entreprises depuis le 1er janvier 2026 ; ne pas facturer dans l'outil évite d'en porter la conformité.
 
 ## Fonctionnalités détaillées
 
@@ -44,9 +50,15 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 - Vues reprises du prototype : Résumé, Actions (retard, aujourd'hui, relances, 7 jours), fiche client, Agenda, export Excel.
 - Interface en français et néerlandais dès la V1.
 
-### 2. Import Excel (V1)
+### 2. Accueil et import des clients (V1)
 
-1. L'utilisateur dépose un fichier Excel ou CSV.
+À la première connexion, l'écran d'accueil propose deux choix seulement : **importer un fichier** ou **ajouter à la main** (et « je le ferai plus tard »).
+
+**Ajout à la main** : nom, groupe ou enseigne (facultatif), adresse, contact, téléphone, importance A/B/C ; bouton « Enregistrer et ajouter un autre ».
+
+**Import** :
+
+1. L'utilisateur choisit un fichier : Excel, CSV, PDF, Word, export d'un autre logiciel ou photo d'une liste ; depuis le téléphone, Google Drive, OneDrive ou une pièce jointe d'email.
 2. L'IA reconnaît les colonnes (nom, adresse, groupe, contact, téléphone) et propose une correspondance.
 3. Aperçu des 10 premières lignes, l'utilisateur corrige si besoin.
 4. Import, détection des doublons, géolocalisation des adresses en arrière-plan.
@@ -78,6 +90,14 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 - Règles par catégorie de client : A toutes les 6 semaines, B tous les 2 mois, C tous les 3 mois (valeurs réglables).
 - Règles par événement : offre envoyée → relance à J+7, J+14.
 - Les relances arrivent dans les Actions et l'email du matin.
+
+### 6 bis. Interventions technicien (V1)
+
+1. **Demande** : le technicien transfère l'email ou le rapport du client (ou crée l'intervention à la main). L'IA propose client (nouveau ou existant), adresse, téléphone, problème, garantie probable ; le technicien vérifie. L'outil propose des créneaux ; « Planifier et prévenir le client ».
+2. **Interventions du jour** : liste avec heure, problème, temps de trajet, garantie ou payant.
+3. **Sur place** : heure d'arrivée notée en un geste (modifiable), durée qui tourne, photos (avant, pièce, après), demande du client rappelée.
+4. **Fin** : heure de départ, rapport vocal structuré par l'IA (travaux réalisés, pièces utilisées, remarques), photos jointes, signature du client sur l'écran.
+5. **Bon d'intervention** (PDF) : validé par le technicien, envoyé au client, et transmis en un geste à l'outil de facturation. Les durées sont calculées par le code, jamais par l'IA ; l'IA ne fixe aucun prix.
 
 ### 7. Planning de tournées (V2)
 
@@ -114,7 +134,9 @@ L'application est pensée pour le téléphone d'abord ; chaque écran clé s'uti
 
 | Écran | Contenu principal | Phase |
 |---|---|---|
-| Inscription et configuration | Compte, langue, description du métier, pipelines proposés par l'IA, import Excel | V1 |
+| Inscription et configuration | Compte, langue, choix du profil (commercial, technicien, les deux), description du métier, pipelines proposés par l'IA | V1 |
+| Bienvenue / import | Importer un fichier ou ajouter à la main ; vérification des colonnes et des doublons avant import | V1 |
+| Interventions (technicien) | Demande depuis un email, interventions du jour, sur place (heures, photos), bon d'intervention | V1 |
 | Aujourd'hui (accueil) | Tournée du jour, actions en retard, relances, gros bouton micro | V1 |
 | Clients | Liste filtrable par groupe, catégorie, zone, statut de pipeline | V1 |
 | Fiche client | Pipelines visuels, historique, rapports, tâches, contacts, bouton micro | V1 |
@@ -133,7 +155,7 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 
 | Table | Champs principaux | Rôle |
 |---|---|---|
-| organizations | nom, langue, plan, modules actifs | Le compte client (1 à 3 utilisateurs) |
+| organizations | nom, langue, plan, modules actifs, profil (commercial, technicien, les deux) | Le compte client (1 à 3 utilisateurs) |
 | users | email, nom, organization_id, rôle | Les personnes qui se connectent |
 | client_groups | nom, couleur | Enseignes ou groupes (ex. FACQ, STG, SAMO) |
 | clients | nom, group_id, adresse, lat/lng, catégorie, fréquence, horaires, notes | Les clients et points de vente |
@@ -144,6 +166,9 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 | visits | client_id, date, heure, statut, source agenda | Les visites planifiées ou réalisées |
 | visit_reports | visit_id, audio_url, transcription, résumé, validé | Les rapports vocaux |
 | tasks | client_id, report_id facultatif, texte, échéance, statut | Les choses à faire |
+| interventions | client_id, demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut, rapport, signature_url | Les interventions du technicien |
+| intervention_photos | intervention_id, photo_url, moment (avant, pièce, après) | Photos d'intervention |
+| intervention_parts | intervention_id, désignation, référence, quantité | Pièces utilisées (sans prix) |
 | follow_up_rules | cible (catégorie ou événement), délai en jours | Les règles de relance |
 | expenses | date, fournisseur, montant, TVA, catégorie, photo_url | Notes de frais (V2) |
 | catalog_items | référence, désignation, prix, unité, remise | Catalogue importé (V3) |
@@ -255,9 +280,17 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 9. Fabrice utilise la V1 seul pendant 3 à 4 semaines.
 10. Audit sécurité, puis ouverture à 3 commerciaux testeurs payants.
 
+## Décisions prises
+
+- Une seule application, deux profils (commercial, technicien) ; le client choisit à l'inscription, « les deux » possible ; les deux profils sont disponibles dès le lancement.
+- Pas de facture dans l'outil : bon d'intervention, puis envoi vers l'outil de facturation existant.
+- Nouvelle présentation sobre et professionnelle (maquette), pas celle du prototype.
+
 ## Questions ouvertes
 
 - Nom du produit et nom de domaine.
 - Structure juridique : via AINHPRO SRL ou une nouvelle société.
 - Les trois premiers testeurs : quels commerciaux du réseau FACQ / STG ?
 - Fournisseur de transcription vocale à retenir.
+- Outils de facturation à connecter en premier (Teamleader, Odoo, autre ?) et format d'envoi du bon d'intervention.
+- Prévenir le client du rendez-vous : email seulement, ou aussi SMS ?

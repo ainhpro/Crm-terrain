@@ -1,10 +1,11 @@
 # CLAUDE.md — CRM commercial terrain
 
-Application modulaire, mobile-first et vocal-first, pour commerciaux terrain indépendants (1 à 3 personnes) en Belgique (FR/NL), Luxembourg, puis France.
+Application modulaire, mobile-first et vocal-first, pour commerciaux terrain et techniciens SAV indépendants (1 à 3 personnes) en Belgique (FR/NL), Luxembourg, puis France. Une seule application, deux profils choisis à l'inscription : commercial, technicien, ou les deux.
 Promesse : « Tu sors de chez le client, tu parles une minute, et tout est à jour. »
 
 - Cahier des charges complet : [`docs/cahier-des-charges.md`](docs/cahier-des-charges.md). Le lire avant toute nouvelle fonctionnalité.
-- Prototype de référence et analyse de sa logique : [`docs/prototype/`](docs/prototype/).
+- Prototype de référence et analyse de sa logique : [`docs/prototype/`](docs/prototype/). On reprend sa logique métier, pas sa présentation.
+- Maquette des écrans (référence visuelle) : https://claude.ai/artifact/3Toq3BYmhz39pY6EpjJz6U — sobre, professionnelle, utilisable d'une main.
 
 ## Modules
 
@@ -13,13 +14,14 @@ Tous les modules partagent le même fichier clients (organisations, clients, gro
 | Module | Dossier | Statut |
 |---|---|---|
 | CRM terrain (socle) | `src/modules/crm` | **En cours — V1** |
+| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (demande depuis un email, photos, heures, bon d'intervention) |
 | Prospection | `src/modules/prospection` | Prévu (listes, séquences d'emails, RGPD) |
 | Faisabilité d'offres | `src/modules/offres` | Prévu (à spécifier : catalogue importé, offre PDF, prix calculés par le code) |
 | Route (tournées, notes de frais) | `src/modules/route` | Prévu (V2) |
 
 Ne rien construire des modules prévus sans demande explicite. Chaque module s'active par compte (`organizations.modules actifs`).
 
-**Hors périmètre définitif** : facturation, comptabilité, gestion de stock. L'outil s'arrête à l'offre.
+**Hors périmètre définitif** : facturation, comptabilité, gestion de stock. L'outil s'arrête à l'offre et au bon d'intervention ; la facture se fait dans l'outil de facturation existant, auquel on envoie le bon d'intervention.
 
 ## Pile technique
 
@@ -41,7 +43,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 
 1. **Isolation par compte** : toute table porte `organization_id`, protégée par Row Level Security Supabase. Chaque nouvelle table reçoit sa politique RLS et un test d'isolation.
 2. **Le serveur est le seul intermédiaire** : le téléphone ne contacte jamais directement l'IA ni les fournisseurs. Clés d'API uniquement côté serveur (jamais de secret en `NEXT_PUBLIC_`).
-3. **Prix et totaux calculés par le code, jamais par l'IA.**
+3. **Prix, totaux et durées calculés par le code, jamais par l'IA.**
 4. **L'IA ne modifie jamais rien sans validation** de l'utilisateur (rapport vocal, import, catalogue : on propose, l'utilisateur valide).
 5. **Statut de pipeline jamais stocké** : recalculé à partir des actions par `src/modules/crm/pipeline/engine.ts`. Une étape avancée terminée valide les étapes précédentes.
 6. **Étapes identifiées par leur `code`**, jamais par le texte du libellé.
@@ -86,13 +88,14 @@ docs/                    cahier des charges, prototype, analyses
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; reste le branchement Supabase et les écrans de connexion)*
 3. Pipelines configurables et calcul des étapes déduites ; pipelines INDA comme premier modèle. *(moteur de calcul et modèle INDA faits, reste la base et les écrans)*
 4. Import Excel avec reconnaissance des colonnes par l'IA ; import des clients INDA (+ reprise de la sauvegarde du prototype, convertisseur fait).
-5. Écrans Aujourd'hui, Actions, Fiche client, Résumé, Agenda.
+5. Écrans selon la maquette : Bienvenue (importer ou ajouter), Aujourd'hui, Clients, Fiche client, Compte rendu vocal.
 6. Rapport vocal : enregistrement, transcription, structuration, validation.
 7. Tâches, relances automatiques (A : 6 semaines, B : 2 mois, C : 3 mois, réglables), email du matin.
+7 bis. Profil technicien : choix du profil à l'inscription, interventions (demande depuis un email, heures, photos, vocal, signature), bon d'intervention PDF et envoi vers l'outil de facturation.
 8. Traduction néerlandaise complète.
 9. Fabrice utilise la V1 seul pendant 3 à 4 semaines.
 10. Audit sécurité, puis ouverture à 3 testeurs payants.
 
 ## Questions ouvertes
 
-Nom du produit et domaine · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».
+Nom du produit et domaine · outils de facturation à connecter en premier · SMS ou email pour prévenir le client · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».
