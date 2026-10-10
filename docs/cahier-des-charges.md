@@ -6,7 +6,7 @@ Version du 10 octobre 2026 · @Ainhpro · mise à jour : deux profils (commercia
 
 Une application qui fait gagner une journée par semaine au commercial terrain indépendant : il importe ses clients, l'outil planifie ses tournées, il dicte ses rapports, et les relances partent toutes seules.
 
-- **Utilisateurs cibles** : une seule application, deux profils choisis à l'inscription (modifiables à tout moment) :
+- **Utilisateurs cibles** : une seule application, deux profils. Le profil est choisi une seule fois, à l'inscription (premier écran pour tout le monde) ; il n'est plus proposé ensuite et ne se change que dans Réglages › Profil :
   - **Commercial terrain** seul ou en petite équipe (1 à 3 personnes) : agents multicartes, représentants de marques qui visitent des showrooms, distributeurs, installateurs ou magasins. Clients réguliers, visites récurrentes, relances.
   - **Technicien / SAV** : intervient chez des clients, souvent des particuliers, sur demande (email, rapport, appel). Photos, heures d'arrivée et de départ, rapport vocal, bon d'intervention.
   - **Les deux** : l'artisan qui vend et intervient lui-même.
@@ -136,7 +136,7 @@ L'application est pensée pour le téléphone d'abord ; chaque écran clé s'uti
 
 | Écran | Contenu principal | Phase |
 |---|---|---|
-| Inscription et configuration | Compte, langue, choix du profil (commercial, technicien, les deux), description du métier, pipelines proposés par l'IA | V1 |
+| Inscription et configuration | Compte, langue, choix du profil une seule fois (commercial, technicien, les deux), description du métier, pipelines proposés par l'IA | V1 |
 | Bienvenue / import | Importer un fichier ou ajouter à la main ; vérification des colonnes et des doublons avant import | V1 |
 | Interventions (technicien) | Demande depuis un email, interventions du jour, sur place (heures, photos), bon d'intervention | V1 |
 | Aujourd'hui (accueil) | Tournée du jour, actions en retard, relances, gros bouton micro | V1 |
@@ -149,7 +149,7 @@ L'application est pensée pour le téléphone d'abord ; chaque écran clé s'uti
 | Notes de frais | Photo de ticket, liste du mois, kilomètres, export | V2 |
 | Catalogue et offres | Import des tarifs, catalogue, création d'offre, PDF, suivi | V3 |
 | Prospection | Listes, séquences d'emails, résultats | V4 |
-| Réglages | Pipelines, règles de relance, heure de l'email du matin, modules, abonnement | V1 |
+| Réglages | Profil (changer de métier), pipelines, règles de relance, heure de l'email du matin, modules, abonnement | V1 |
 
 ## Modèle de données
 
@@ -284,7 +284,7 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 
 ## Décisions prises
 
-- Une seule application, deux profils (commercial, technicien) ; le client choisit à l'inscription, « les deux » possible ; les deux profils sont disponibles dès le lancement.
+- Une seule application, deux profils (commercial, technicien) ; le client choisit une seule fois à l'inscription, « les deux » possible ; changement ensuite uniquement dans Réglages › Profil ; les deux profils sont disponibles dès le lancement.
 - Pas de facture dans l'outil : bon d'intervention, puis envoi vers l'outil de facturation existant.
 - Nouvelle présentation sobre et professionnelle (maquette), pas celle du prototype.
 

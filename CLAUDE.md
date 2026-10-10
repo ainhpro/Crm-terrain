@@ -1,11 +1,11 @@
 # CLAUDE.md — CRM commercial terrain
 
-Application modulaire, mobile-first et vocal-first, pour commerciaux terrain et techniciens SAV indépendants (1 à 3 personnes) en Belgique (FR/NL), Luxembourg, puis France. Une seule application, deux profils choisis à l'inscription : commercial, technicien, ou les deux.
+Application modulaire, mobile-first et vocal-first, pour commerciaux terrain et techniciens SAV indépendants (1 à 3 personnes) en Belgique (FR/NL), Luxembourg, puis France. Une seule application, deux profils : commercial, technicien, ou les deux. Choisi une seule fois à l'inscription, modifiable ensuite seulement dans Réglages › Profil.
 Promesse : « Tu sors de chez le client, tu parles une minute, et tout est à jour. »
 
 - Cahier des charges complet : [`docs/cahier-des-charges.md`](docs/cahier-des-charges.md). Le lire avant toute nouvelle fonctionnalité.
 - Prototype de référence et analyse de sa logique : [`docs/prototype/`](docs/prototype/). On reprend sa logique métier, pas sa présentation.
-- Maquette des écrans (référence visuelle) : https://claude.ai/artifact/3Toq3BYmhz39pY6EpjJz6U — sobre, professionnelle, utilisable d'une main.
+- Démo des parcours (référence visuelle) : https://claude.ai/artifact/DcLwrC7uZNzpPL84Rpw4WF — sobre, professionnelle, utilisable d'une main. Ancienne maquette en tableau : https://claude.ai/artifact/3Toq3BYmhz39pY6EpjJz6U
 
 ## Modules
 
