@@ -95,6 +95,8 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
 
 **Réglages de départ (une fois, modifiables dans Réglages)** :
 
+- **Votre entreprise** : logo (photo ou fichier), nom de la société, adresse, téléphone, email, numéro de TVA (format vérifié, contrôle VIES possible), IBAN, conditions de paiement. Ces informations figurent automatiquement en tête et en pied de chaque rapport PDF et de chaque email. Elles servent aussi aux documents commerciaux (offres) plus tard. Le rapport reste un rapport d'intervention, pas une facture : l'outil de facturation reprend ces données et le montant.
+
 - **Types d'intervention** : liste par compte, avec des modèles proposés (SAV, prise de mesure, placement showroom) et des types libres (ex. « Intervention Culligan »). Chaque type peut avoir ses propres champs (garantie pour un SAV, mesures pour une prise de mesure, produits installés pour un placement).
 - **Donneurs d'ordre** : beaucoup de techniciens sont indépendants et travaillent pour plusieurs fournisseurs ou marques. Pour chacun : nom, une ou plusieurs adresses email nommées par service ou gamme de produits (ex. INDA : « parois de douche », « meubles » ; Culligan : « bureau »), type d'intervention par défaut. « Client particulier » reste possible sans donneur d'ordre.
 - **Numéros de tickets facultatifs** : une intervention peut porter un ou plusieurs numéros de tickets (ceux du donneur d'ordre). Jamais obligatoires ; lus dans l'objet du mail quand ils existent, sinon saisis ou laissés vides.
@@ -189,7 +191,7 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 
 | Table | Champs principaux | Rôle |
 |---|---|---|
-| organizations | nom, langue, plan, modules actifs, profil (commercial, technicien, les deux) | Le compte client (1 à 3 utilisateurs) |
+| organizations | nom, langue, plan, modules actifs, profil (commercial, technicien, les deux), logo_url, adresse, téléphone, email, n° de TVA, IBAN, conditions de paiement | Le compte client (1 à 3 utilisateurs) |
 | users | email, nom, organization_id, rôle | Les personnes qui se connectent |
 | client_groups | nom, couleur | Enseignes ou groupes (ex. FACQ, STG, SAMO) |
 | clients | nom, group_id, adresse, lat/lng, catégorie, fréquence, horaires, notes | Les clients et points de vente |
@@ -323,6 +325,7 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 - Pas de facture dans l'outil : bon d'intervention, puis envoi vers l'outil de facturation existant.
 - Nouvelle présentation sobre et professionnelle (maquette), pas celle du prototype.
 - PC : application dans le navigateur, plus copie automatique des rapports PDF dans OneDrive et Google Drive.
+- Identité de l'entreprise (logo, coordonnées, TVA, IBAN, conditions) saisie une fois et imprimée sur tous les rapports et emails.
 - Destinataires des rapports choisis à chaque envoi : bureau du fournisseur (adresse par service), client final, ou les deux.
 - Réception d'une pièce ou d'un matériel : bouton « Pièce reçue » ou email intégré au dossier (reconnu par le numéro de ticket), toujours confirmé par le technicien.
 
