@@ -98,8 +98,13 @@ Chaque fonction est reliée au même fichier clients : un rapport vocal met à j
    - Un deuxième email portant le même numéro (relance, complément) est rattaché à l'intervention existante au lieu d'en créer une nouvelle (proposé, validé par le technicien). L'outil propose des créneaux ; « Planifier et prévenir le client ».
 2. **Interventions du jour** : liste avec heure, problème, temps de trajet, garantie ou payant.
 3. **Sur place** : heure d'arrivée notée en un geste (modifiable), durée qui tourne, photos (avant, pièce, après), demande du client rappelée.
-4. **Fin** : heure de départ, rapport vocal structuré par l'IA (travaux réalisés, pièces utilisées, remarques), photos jointes, signature du client sur l'écran.
-5. **Bon d'intervention** (PDF) : validé par le technicien, envoyé au client, et transmis en un geste à l'outil de facturation. Les durées sont calculées par le code, jamais par l'IA ; l'IA ne fixe aucun prix.
+4. **Fin** : heure de départ, rapport vocal structuré par l'IA (travaux réalisés, pièces utilisées, pièces à commander, remarques), photos jointes, signature du client sur l'écran.
+5. **Pièces à commander** : sur place, le technicien peut demander une pièce qu'il n'a pas :
+   - en photographiant la notice de pose (ou l'étiquette du produit) : l'IA lit la référence et la désignation ;
+   - ou en la dictant (« j'ai besoin de la référence 4512-08 »), dans le rapport vocal ou à part ;
+   - il vérifie référence, désignation, quantité et fournisseur (usine, fabricant), puis envoie la commande par email au fournisseur, avec le numéro de demande et les photos utiles. Rien ne part sans sa validation.
+6. **Suivi du dossier** : tant qu'une pièce manque, l'intervention reste ouverte « en attente de pièce ». Le dossier montre chaque étape avec sa date (demande reçue, intervention, pièce commandée, pièce reçue, retour chez le client, clôturé) et depuis combien de jours on attend. Les pièces en attente apparaissent sur l'écran du jour et dans l'email du matin ; relance proposée au fournisseur après un délai réglable. Quand le technicien indique « pièce reçue », l'application propose un créneau de retour au client ; le dossier est clôturé après ce retour.
+7. **Bon d'intervention** (PDF) : validé par le technicien, envoyé au client, et transmis en un geste à l'outil de facturation. Les durées sont calculées par le code, jamais par l'IA ; l'IA ne fixe aucun prix.
 
 ### 7. Planning de tournées (V2)
 
@@ -168,9 +173,10 @@ Toutes les tables portent un `organization_id` ; la base refuse qu'un compte lis
 | visits | client_id, date, heure, statut, source agenda | Les visites planifiées ou réalisées |
 | visit_reports | visit_id, audio_url, transcription, résumé, validé | Les rapports vocaux |
 | tasks | client_id, report_id facultatif, texte, échéance, statut | Les choses à faire |
-| interventions | client_id, numéro de demande externe (facultatif, unique par compte), demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut, rapport, signature_url | Les interventions du technicien |
+| interventions | client_id, numéro de demande externe (facultatif, unique par compte), demande d'origine (email ou texte), problème, garantie, date prévue, heure d'arrivée, heure de départ, statut (planifiée, en cours, en attente de pièce, retour à planifier, clôturée), rapport, signature_url | Les interventions du technicien |
 | intervention_photos | intervention_id, photo_url, moment (avant, pièce, après) | Photos d'intervention |
 | intervention_parts | intervention_id, désignation, référence, quantité | Pièces utilisées (sans prix) |
+| part_orders | intervention_id, référence, désignation, quantité, fournisseur, photo de la notice, statut (à commander, commandée, reçue), dates de commande et de réception, n° de commande fournisseur | Pièces à commander et leur suivi |
 | follow_up_rules | cible (catégorie ou événement), délai en jours | Les règles de relance |
 | expenses | date, fournisseur, montant, TVA, catégorie, photo_url | Notes de frais (V2) |
 | catalog_items | référence, désignation, prix, unité, remise | Catalogue importé (V3) |

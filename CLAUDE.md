@@ -14,7 +14,7 @@ Tous les modules partagent le même fichier clients (organisations, clients, gro
 | Module | Dossier | Statut |
 |---|---|---|
 | CRM terrain (socle) | `src/modules/crm` | **En cours — V1** |
-| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (demande depuis un email, photos, heures, bon d'intervention) |
+| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (demande depuis un email, photos, heures, pièces à commander et suivi, bon d'intervention) |
 | Prospection | `src/modules/prospection` | Prévu (listes, séquences d'emails, RGPD) |
 | Faisabilité d'offres | `src/modules/offres` | Prévu (à spécifier : catalogue importé, offre PDF, prix calculés par le code) |
 | Route (tournées, notes de frais) | `src/modules/route` | Prévu (V2) |
@@ -91,7 +91,7 @@ docs/                    cahier des charges, prototype, analyses
 5. Écrans selon la maquette : Bienvenue (importer ou ajouter), Aujourd'hui, Clients, Fiche client, Compte rendu vocal.
 6. Rapport vocal : enregistrement, transcription, structuration, validation.
 7. Tâches, relances automatiques (A : 6 semaines, B : 2 mois, C : 3 mois, réglables), email du matin.
-7 bis. Profil technicien : choix du profil à l'inscription, interventions (demande depuis un email, heures, photos, vocal, signature), bon d'intervention PDF et envoi vers l'outil de facturation.
+7 bis. Profil technicien : choix du profil à l'inscription, interventions (demande depuis un email, heures, photos, vocal, signature, pièces à commander par photo de notice ou dictée, suivi jusqu'à réception et retour chez le client), bon d'intervention PDF et envoi vers l'outil de facturation.
 8. Traduction néerlandaise complète.
 9. Fabrice utilise la V1 seul pendant 3 à 4 semaines.
 10. Audit sécurité, puis ouverture à 3 testeurs payants.
