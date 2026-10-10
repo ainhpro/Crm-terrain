@@ -2,9 +2,11 @@ import { headers } from 'next/headers';
 import { Flash } from '@/components';
 import { logout } from '@/server/actions/auth';
 import {
-  addPrincipal, addPrincipalAddress, addType, inviteMember, saveCompany, saveMemberSettings, suggestOptions,
+  addPipeline, addPrincipal, addPrincipalAddress, addStep, addType, archiveStep, inviteMember, moveStep, renamePipeline, renameStep,
+  saveCompany, saveMemberSettings, suggestOptions,
 } from '@/server/actions/settings';
-import { isTechnician, requireCtx } from '@/server/context';
+import { isCommercial, isTechnician, requireCtx } from '@/server/context';
+import { loadPipelines } from '@/server/crm';
 import { withUser } from '@/server/db';
 import { readOptions } from '@/modules/interventions/options';
 import { loadOrgIdentity } from '@/server/interventions';
@@ -18,6 +20,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const host = (await headers()).get('host') ?? 'localhost:3000';
   const data = await withUser(ctx.userId, async (q) => ({
     org: await loadOrgIdentity(q, ctx.orgId),
+    pipelines: isCommercial(ctx) ? await loadPipelines(q) : [],
     types: (await q<{ id: string; name: string; kind: string }>(`select id, name, kind from intervention_types where archived_at is null order by position, name`)).rows,
     principals: (
       await q<{ id: string; name: string; addresses: { label: string; email: string }[] }>(
@@ -115,6 +118,58 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </fieldset>
         </form>
       </section>
+
+      {isCommercial(ctx) && (
+        <section className="stack" id="etapes">
+          <h2>{t.settings.salesSteps}</h2>
+          <p className="faint">{isOwner ? t.settings.salesStepsHint : t.settings.ownerOnly}</p>
+          {data.pipelines.map((p) => (
+            <div key={p.id} className="card pad stack">
+              <form action={renamePipeline} className="row">
+                <input type="hidden" name="pipelineId" value={p.id} />
+                <input type="text" name="name" defaultValue={p.name} aria-label={t.settings.pipelineName} className="grow" required disabled={!isOwner} />
+                {isOwner && <button className="btn small" type="submit">{t.settings.rename}</button>}
+              </form>
+              <ol className="stack" style={{ margin: 0, paddingLeft: 0, listStyle: 'none', gap: 12 }}>
+                {p.steps.map((s, i) => (
+                  <li key={s.id} className="stack" style={{ gap: 6 }}>
+                    <form id={`step-${s.id}`} action={renameStep} className="row" style={{ gap: 6 }}>
+                      <input type="hidden" name="stepId" value={s.id} />
+                      <span className="faint num" style={{ width: 16, flexShrink: 0 }}>{i + 1}</span>
+                      <input type="text" name="label" defaultValue={s.label} aria-label={t.settings.stepLabel} className="grow" required disabled={!isOwner} />
+                      <input type="text" name="short" defaultValue={s.short_label ?? ''} aria-label={t.settings.shortLabel} placeholder={t.settings.shortLabel} style={{ flex: '0 0 92px' }} maxLength={8} disabled={!isOwner} />
+                    </form>
+                    {isOwner && (
+                      <div className="row" style={{ gap: 6, paddingLeft: 22 }}>
+                        <button className="btn small" type="submit" form={`step-${s.id}`}>{t.common.save}</button>
+                        <form action={moveStep}><input type="hidden" name="stepId" value={s.id} /><input type="hidden" name="dir" value="up" />
+                          <button className="btn small" type="submit" disabled={i === 0} aria-label={`${t.settings.moveUp} : ${s.label}`}>↑</button></form>
+                        <form action={moveStep}><input type="hidden" name="stepId" value={s.id} /><input type="hidden" name="dir" value="down" />
+                          <button className="btn small" type="submit" disabled={i === p.steps.length - 1} aria-label={`${t.settings.moveDown} : ${s.label}`}>↓</button></form>
+                        <form action={archiveStep} style={{ marginLeft: 'auto' }}><input type="hidden" name="stepId" value={s.id} />
+                          <button className="btn small danger" type="submit" disabled={p.steps.length <= 1}>{t.settings.archiveStep}</button></form>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              {isOwner && (
+                <form action={addStep} className="row">
+                  <input type="hidden" name="pipelineId" value={p.id} />
+                  <input type="text" name="label" placeholder={t.settings.addStep} aria-label={t.settings.addStep} className="grow" required />
+                  <button className="btn small" type="submit">{t.common.add}</button>
+                </form>
+              )}
+            </div>
+          ))}
+          {isOwner && (
+            <form action={addPipeline} className="row wrap">
+              <input type="text" name="name" placeholder={t.settings.addPipeline} aria-label={t.settings.addPipeline} className="grow" required />
+              <button className="btn" type="submit">{t.common.add}</button>
+            </form>
+          )}
+        </section>
+      )}
 
       {isTechnician(ctx) && (
         <>

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ACTION_STATUSES, DEAL_STATUSES, type ActionStatus } from '@/modules/crm/pipeline/types';
-import { buildImport, dedupeKey, type Mapping, TARGET_FIELDS, type TargetField } from '@/modules/crm/import/columns';
+import { buildImport, type CrmSource, dedupeKey, type Mapping, TARGET_FIELDS, type TargetField } from '@/modules/crm/import/columns';
 import { loadClient } from '../crm';
 import { requireCtx } from '../context';
 import { pgCode, withUser } from '../db';
@@ -118,6 +118,8 @@ export interface ImportPreview {
   mapping: Mapping;
   /** Clés des clients déjà présents, pour annoncer les doublons dès le bilan. */
   existing: string[];
+  /** Export d'un CRM reconnu à ses en-têtes. */
+  source?: CrmSource | null;
   error?: string;
 }
 
@@ -128,7 +130,7 @@ export async function readImportFile(_: ImportPreview | null, formData: FormData
   const empty: ImportPreview = { headers: [], rows: [], mapping: [], existing: [] };
   if (!(file instanceof File) || file.size === 0) return { ...empty, error: 'unreadable' };
   if (file.size > 5 * 1024 * 1024) return { ...empty, error: 'tooLarge' };
-  const { proposeMapping, parseCsv } = await import('@/modules/crm/import/columns');
+  const { detectSource, proposeMapping, parseCsv } = await import('@/modules/crm/import/columns');
   let table: string[][] = [];
   try {
     if (/\.csv$/i.test(file.name) || file.type === 'text/csv') {
@@ -160,7 +162,7 @@ export async function readImportFile(_: ImportPreview | null, formData: FormData
   const existing = await withUser(ctx.userId, async (q) =>
     (await q<{ name: string; city: string | null }>(`select name, city from clients`)).rows.map((c) => dedupeKey(c.name, c.city ?? undefined)),
   );
-  return { headers, rows, mapping: proposeMapping(headers), existing };
+  return { headers, rows, mapping: proposeMapping(headers), existing, source: detectSource(headers) };
 }
 
 function parseMapping(raw: string, width: number): Mapping {
@@ -180,9 +182,16 @@ export async function runImport(formData: FormData) {
   await withUser(ctx.userId, async (q) => {
     const existing = await q<{ name: string; city: string | null }>(`select name, city from clients`);
     const report = buildImport(rows, mapping, new Set(existing.rows.map((c) => dedupeKey(c.name, c.city ?? undefined))));
+    const created = new Map<number, string>(); // ligne du fichier → client créé
     for (const r of report.rows) {
-      if (r.issues.length || r.duplicateOf !== null) continue;
       const v = r.values;
+      if (r.extraContact && typeof r.duplicateOf === 'number' && created.has(r.duplicateOf)) {
+        await q(`insert into contacts (organization_id, client_id, name, phone, email) values ($1, $2, $3, $4, $5)`, [
+          ctx.orgId, created.get(r.duplicateOf), v.contact ?? v.name, v.phone ?? null, v.email ?? null,
+        ]);
+        continue;
+      }
+      if (r.issues.length || r.duplicateOf !== null) continue;
       const groupId = await findOrCreateGroup(q, ctx.orgId, v.group ?? null);
       const id = (
         await q<{ id: string }>(
@@ -190,6 +199,7 @@ export async function runImport(formData: FormData) {
           [ctx.orgId, groupId, v.name, v.address ?? null, v.postalCode ?? null, v.city ?? null, v.category ?? null, v.notes ?? null],
         )
       ).rows[0]!.id;
+      created.set(r.line, id);
       if (v.contact || v.phone || v.email) {
         await q(`insert into contacts (organization_id, client_id, name, phone, email) values ($1, $2, $3, $4, $5)`, [ctx.orgId, id, v.contact ?? v.name, v.phone ?? null, v.email ?? null]);
       }

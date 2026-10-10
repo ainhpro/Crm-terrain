@@ -95,7 +95,7 @@ describe('modèle INDA', () => {
   it('codes d’étapes uniques par pipeline et groupes existants', () => {
     const groups = new Set(INDA_GROUPS.map((g) => g.code));
     for (const p of INDA_PIPELINES) {
-      expect(groups.has(p.groupCode)).toBe(true);
+      expect(groups.has(p.groupCode ?? '')).toBe(true);
       const codes = p.steps.map((s) => s.code);
       expect(new Set(codes).size).toBe(codes.length);
     }

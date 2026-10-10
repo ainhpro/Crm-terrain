@@ -25,6 +25,14 @@ Une application qui fait gagner une journée par semaine au commercial terrain i
 
 **Premier utilisateur** : Fabrice, avec ses données INDA (FACQ, STG, SAMO). Le prototype actuel sert de référence fonctionnelle.
 
+**Produit neutre** (décision du 10 octobre 2026) : l'application est vendue à tout commercial ou technicien indépendant, quel que soit son secteur. Aucun nom de client, de marque ou de secteur dans le code ni dans l'interface. Un nouveau compte démarre avec :
+- un parcours de vente générique « Vente » : Premier contact › Rendez-vous › Offre envoyée › Commande, que le propriétaire renomme, complète, réordonne ou réduit dans Réglages › Étapes de vente (une étape renommée garde son code et son historique ; une étape utilisée est retirée, jamais effacée) ; il peut ajouter d'autres parcours (ex. Location, Entretien annuel) ;
+- pour un technicien, des types d'intervention génériques : SAV / dépannage, Installation, Entretien, Prise de mesure.
+
+INDA n'est qu'un modèle de démarrage parmi d'autres (`src/modules/crm/templates/inda.ts`), utilisé pour le compte de Fabrice.
+
+**Reprise depuis un autre CRM** : l'import reconnaît les exports courants (Teamleader, Pipedrive, HubSpot, Odoo, Salesforce, Zoho) et l'annonce ; prénom et nom séparés sont réunis en personne de contact, le numéro de rue rejoint l'adresse ; un export « une ligne par personne » crée le client une fois et lui ajoute chaque personne. La correspondance reste vérifiable avant import. À venir : reprise des affaires et de l'historique (à spécifier selon les CRM demandés par les testeurs).
+
 ## Périmètre par phases
 
 La V1 doit suffire à faire payer trois commerciaux testeurs ; le reste vient seulement après leurs retours.
@@ -391,8 +399,8 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 
 1. Créer le dépôt GitHub, le projet Supabase (Francfort) et le projet Vercel.
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée.
-3. Pipelines configurables et calcul des étapes déduites ; reprise des pipelines INDA comme premier modèle.
-4. Import Excel avec reconnaissance des colonnes par l'IA ; import des clients INDA de Fabrice.
+3. Pipelines configurables et calcul des étapes déduites ; modèle neutre pour tout nouveau compte, pipelines INDA comme modèle pour Fabrice.
+4. Import Excel avec reconnaissance des colonnes par l'IA (y compris exports d'autres CRM) ; import des clients INDA de Fabrice.
 5. Écrans Aujourd'hui, Actions, Fiche client, Résumé, Agenda.
 6. Rapport vocal : enregistrement, transcription, structuration, validation.
 7. Tâches, relances automatiques, email du matin.

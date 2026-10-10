@@ -3,6 +3,8 @@
 Application modulaire, mobile-first et vocal-first, pour commerciaux terrain et techniciens SAV indépendants (1 à 3 personnes) en Belgique (FR/NL), Luxembourg, puis France. Une seule application, deux profils : commercial, technicien, ou les deux. Choisi une seule fois à l'inscription, modifiable ensuite seulement dans Réglages › Profil.
 Promesse : « Tu sors de chez le client, tu parles une minute, et tout est à jour. »
 
+**Produit neutre** : aucun nom de client, de marque ou de secteur dans le code ni dans les fichiers de langue. Un nouveau compte reçoit le modèle neutre (`src/modules/crm/templates/standard.ts`, `src/modules/interventions/standard.ts`) et l'adapte dans Réglages. INDA (Fabrice) n'est qu'un modèle et un jeu de démonstration.
+
 - Cahier des charges complet : [`docs/cahier-des-charges.md`](docs/cahier-des-charges.md). Le lire avant toute nouvelle fonctionnalité.
 - Prototype de référence et analyse de sa logique : [`docs/prototype/`](docs/prototype/). On reprend sa logique métier, pas sa présentation.
 - Démo des parcours (référence visuelle) : https://claude.ai/artifact/DcLwrC7uZNzpPL84Rpw4WF — sobre, professionnelle, utilisable d'une main. Ancienne maquette en tableau : https://claude.ai/artifact/3Toq3BYmhz39pY6EpjJz6U
@@ -95,8 +97,8 @@ docs/                    cahier des charges, prototype, analyses
 
 1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; Supabase et Vercel en attente)*
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; reste le branchement Supabase et les écrans de connexion)*
-3. Pipelines configurables et calcul des étapes déduites ; pipelines INDA comme premier modèle. *(moteur de calcul et modèle INDA faits, reste la base et les écrans)*
-4. Import Excel avec reconnaissance des colonnes par l'IA ; import des clients INDA (+ reprise de la sauvegarde du prototype, convertisseur fait).
+3. Pipelines configurables et calcul des étapes déduites. *(moteur, modèle neutre à l'inscription, éditeur Réglages › Étapes de vente et modèle INDA faits)*
+4. Import Excel avec reconnaissance des colonnes par l'IA ; exports d'autres CRM reconnus (Teamleader, Pipedrive, HubSpot, Odoo, Salesforce, Zoho) ; import des clients INDA (+ reprise de la sauvegarde du prototype, convertisseur fait).
 5. Écrans selon la maquette : Bienvenue (importer ou ajouter), Aujourd'hui, Clients, Fiche client, Compte rendu vocal.
 6. Rapport vocal : enregistrement, transcription, structuration, validation.
 7. Tâches, relances automatiques (A : 6 semaines, B : 2 mois, C : 3 mois, réglables), email du matin.

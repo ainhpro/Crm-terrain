@@ -1,29 +1,11 @@
 /**
  * Modèle INDA (premier utilisateur : Fabrice), repris du prototype.
- * Sert de premier modèle de pipelines et de jeu de données de démarrage.
+ * Un modèle parmi d'autres : un nouveau compte démarre avec le modèle neutre (standard.ts).
  */
 
-export interface StepTemplate {
-  code: string;
-  label: { fr: string; nl: string };
-  /** Libellé court affiché sous le point du pipeline. */
-  short: { fr: string; nl: string };
-}
+import type { GroupTemplate, PipelineTemplate } from './types';
 
-export interface PipelineTemplate {
-  code: string;
-  groupCode: string;
-  label: { fr: string; nl: string };
-  steps: StepTemplate[];
-  impliedByDefault?: string[];
-}
-
-export interface GroupTemplate {
-  code: string;
-  name: string;
-  color: string;
-  sites: string[];
-}
+export type { GroupTemplate, PipelineTemplate, StepTemplate } from './types';
 
 export const INDA_GROUPS: GroupTemplate[] = [
   {

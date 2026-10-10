@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState } from 'react';
 import type { Messages } from '@/i18n/messages/fr';
-import { buildImport, type Mapping, TARGET_FIELDS, type TargetField } from '@/modules/crm/import/columns';
+import { buildImport, CRM_SOURCE_NAMES, type Mapping, TARGET_FIELDS, type TargetField } from '@/modules/crm/import/columns';
 import { readImportFile, runImport } from '@/server/actions/crm';
 
 /** Import en trois temps : lire le fichier, ajuster la correspondance, vérifier le bilan complet, importer. */
@@ -11,8 +11,8 @@ export function ImportFlow({ t, fields, common }: { t: Messages['import']; field
   const [mapping, setMapping] = useState<Mapping | null>(null);
   const current = mapping ?? preview?.mapping ?? [];
   const label: Record<TargetField, string> = {
-    name: fields.name, group: fields.group, address: fields.address, postalCode: fields.postalCode, city: fields.city,
-    contact: fields.contact, phone: fields.phone, email: fields.email, category: fields.category, notes: fields.notes,
+    name: fields.name, group: fields.group, address: fields.address, streetNumber: t.streetNumber, postalCode: fields.postalCode, city: fields.city,
+    contact: fields.contact, firstName: t.firstName, lastName: t.lastName, phone: fields.phone, email: fields.email, category: fields.category, notes: fields.notes,
   };
 
   // Le bilan est recalculé ici à chaque changement de correspondance ; le serveur le refait à l'import.
@@ -38,6 +38,7 @@ export function ImportFlow({ t, fields, common }: { t: Messages['import']; field
 
       {preview && !preview.error && (
         <>
+          {preview.source && <p className="note info">{t.detected.replace('{source}', CRM_SOURCE_NAMES[preview.source])}</p>}
           <h2>{t.mappingTitle}</h2>
           <p className="faint">{t.mappingHint}</p>
           <div className="card">
@@ -79,7 +80,7 @@ export function ImportFlow({ t, fields, common }: { t: Messages['import']; field
                         <tr key={r.line}>
                           <td className="num">{r.line}</td>
                           <td>{r.values.name ?? '—'}</td>
-                          <td>{[...r.issues, r.duplicateOf === 'existing' ? t.duplicateExisting : r.duplicateOf ? `${t.duplicateOf} ${r.duplicateOf}` : ''].filter(Boolean).join(' · ')}</td>
+                          <td>{[...r.issues, r.duplicateOf === 'existing' ? t.duplicateExisting : r.extraContact ? `${t.contactAdded} ${r.duplicateOf}` : r.duplicateOf ? `${t.duplicateOf} ${r.duplicateOf}` : ''].filter(Boolean).join(' · ')}</td>
                         </tr>
                       ))}
                     </tbody>

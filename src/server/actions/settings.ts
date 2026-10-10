@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { pipelineCodeFromName, stepCodeFromLabel } from '@/modules/crm/templates/standard';
 import { defaultOptions, type TypeKind } from '@/modules/interventions/options';
 import { requireCtx } from '../context';
 import { pgCode, withUser } from '../db';
@@ -142,4 +143,102 @@ export async function acceptInvitation(formData: FormData) {
     redirect(`/invitation/${encodeURIComponent(str(formData, 'token'))}?erreur=1`);
   }
   redirect('/');
+}
+
+// ── Étapes de vente : chaque compte adapte ses pipelines à son métier (propriétaire uniquement). ──
+
+async function ownerCtx() {
+  const ctx = await requireCtx();
+  if (ctx.role !== 'owner') done('?erreur=owner#etapes');
+  return ctx;
+}
+
+export async function addPipeline(formData: FormData) {
+  const ctx = await ownerCtx();
+  const name = str(formData, 'name');
+  if (!name) done('#etapes');
+  await withUser(ctx.userId, async (q) => {
+    const taken = (await q<{ code: string }>(`select code from pipelines`)).rows.map((r) => r.code);
+    const p = (
+      await q<{ id: string }>(
+        `insert into pipelines (organization_id, code, name, position) values ($1, $2, $3, (select coalesce(max(position), 0) + 1 from pipelines)) returning id`,
+        [ctx.orgId, pipelineCodeFromName(name, taken), name],
+      )
+    ).rows[0]!.id;
+    // Un pipeline sans étape ne sert à rien : on lui donne la première, renommable.
+    const first = str(formData, 'firstStep') || name;
+    await q(`insert into pipeline_steps (organization_id, pipeline_id, code, label, position) values ($1, $2, $3, $4, 0)`, [ctx.orgId, p, stepCodeFromLabel(first, []), first]);
+  });
+  done('?ok=1#etapes');
+}
+
+export async function renamePipeline(formData: FormData) {
+  const ctx = await ownerCtx();
+  const name = str(formData, 'name');
+  if (!name) done('#etapes');
+  await withUser(ctx.userId, (q) => q(`update pipelines set name = $1 where id = $2`, [name, str(formData, 'pipelineId')]));
+  done('?ok=1#etapes');
+}
+
+export async function addStep(formData: FormData) {
+  const ctx = await ownerCtx();
+  const label = str(formData, 'label');
+  const pipelineId = str(formData, 'pipelineId');
+  if (!label) done('#etapes');
+  await withUser(ctx.userId, async (q) => {
+    const taken = (await q<{ code: string }>(`select code from pipeline_steps where pipeline_id = $1`, [pipelineId])).rows.map((r) => r.code);
+    await q(
+      `insert into pipeline_steps (organization_id, pipeline_id, code, label, position)
+       values ($1, $2, $3, $4, (select coalesce(max(position), -1) + 1 from pipeline_steps where pipeline_id = $2))`,
+      [ctx.orgId, pipelineId, stepCodeFromLabel(label, taken), label],
+    );
+  });
+  done('?ok=1#etapes');
+}
+
+/** Renommer ne change pas le code : l'historique et le calcul restent liés à la même étape. */
+export async function renameStep(formData: FormData) {
+  const ctx = await ownerCtx();
+  const label = str(formData, 'label');
+  if (!label) done('#etapes');
+  await withUser(ctx.userId, (q) =>
+    q(`update pipeline_steps set label = $1, short_label = $2 where id = $3`, [label, opt(formData, 'short'), str(formData, 'stepId')]),
+  );
+  done('?ok=1#etapes');
+}
+
+export async function moveStep(formData: FormData) {
+  const ctx = await ownerCtx();
+  const stepId = str(formData, 'stepId');
+  const dir = str(formData, 'dir') === 'up' ? -1 : 1;
+  await withUser(ctx.userId, async (q) => {
+    const pipelineId = (await q<{ pipeline_id: string }>(`select pipeline_id from pipeline_steps where id = $1`, [stepId])).rows[0]?.pipeline_id;
+    if (!pipelineId) return;
+    // Toutes les étapes (archivées comprises) : la fonction de réordonnancement les exige toutes.
+    const all = (await q<{ id: string; archived: boolean }>(
+      `select id, archived_at is not null as archived from pipeline_steps where pipeline_id = $1 order by position`, [pipelineId],
+    )).rows;
+    const visible = all.filter((s) => !s.archived);
+    const i = visible.findIndex((s) => s.id === stepId);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= visible.length) return;
+    [visible[i], visible[j]] = [visible[j]!, visible[i]!];
+    const order = [...visible.map((s) => s.id), ...all.filter((s) => s.archived).map((s) => s.id)];
+    await q(`select public.reorder_pipeline_steps($1, $2::uuid[])`, [pipelineId, order]);
+  });
+  done('#etapes');
+}
+
+/** Une étape utilisée ne se supprime pas : elle est archivée (l'historique la garde). */
+export async function archiveStep(formData: FormData) {
+  const ctx = await ownerCtx();
+  await withUser(ctx.userId, async (q) => {
+    const left = (await q<{ n: number }>(
+      `select count(*)::int as n from pipeline_steps where pipeline_id = (select pipeline_id from pipeline_steps where id = $1) and archived_at is null`,
+      [str(formData, 'stepId')],
+    )).rows[0]!.n;
+    if (left <= 1) return; // un pipeline garde au moins une étape
+    await q(`update pipeline_steps set archived_at = now() where id = $1`, [str(formData, 'stepId')]);
+  });
+  done('?ok=1#etapes');
 }
