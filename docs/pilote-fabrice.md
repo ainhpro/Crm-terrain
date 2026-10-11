@@ -1,6 +1,6 @@
 # Préparation du pilote de Fabrice
 
-Ce document accompagne la réponse à la relecture V1 (`docs/revue/2026-10-10-relecture-v1-reponse.md`). Il ne décrit que ce qui est nécessaire au pilote. Aucun service n'a été souscrit, aucun message réel n'a été envoyé.
+Mise en service technique : `docs/supabase.md`. Ce document accompagne la réponse à la relecture V1 (`docs/revue/2026-10-10-relecture-v1-reponse.md`). Il ne décrit que ce qui est nécessaire au pilote. Aucun service n'a été souscrit, aucun message réel n'a été envoyé.
 
 ## 1. Parcours téléphone visé et intégrations indispensables (P01)
 
@@ -8,10 +8,10 @@ Le parcours visé : connexion vérifiée → client ou dossier → compte rendu 
 
 | Étape | Aujourd'hui (local) | Indispensable pour le pilote | Paramètres manquants |
 |---|---|---|---|
-| Connexion vérifiée | Email seul, développement uniquement (refusé en production) | Supabase Auth : lien de connexion par email | Projet Supabase Francfort : URL, clé publique (anon), clé `service_role` (serveur uniquement), modèle d'email de connexion |
+| Connexion vérifiée | **Code prêt** (lien + code par email, testé contre un faux Supabase) ; email seul en développement uniquement | Supabase Auth branché, SMTP Brevo pour écrire à Fabrice | Projet Supabase Francfort : URL, clé publique (anon), clé `service_role` (serveur uniquement), modèle d'email de connexion |
 | Données persistantes | Postgres local qui reproduit Supabase | Base Supabase, migrations appliquées dans l'ordre | Même projet ; mot de passe de la base pour les migrations |
-| Photos, signatures, PDF | Disque local (refusé sur Vercel) | Supabase Storage, bucket privé, accès servi après contrôle RLS | Nom du bucket ; politique de conservation |
-| Hébergement | `next dev` / `next start` local | Vercel, région Europe | Projet Vercel, domaine, variables d'environnement (`SESSION_SECRET` ne sert plus en production) |
+| Photos, signatures, PDF | **Code prêt** (Supabase Storage, bucket privé, testé contre un faux Supabase) ; disque local en développement | Bucket créé par `npm run supabase:setup` | Nom du bucket ; politique de conservation |
+| Hébergement | `next dev` / `next start` local | Vercel, région Europe | Projet Vercel, domaine, variables d'environnement (dont `SESSION_SECRET`, qui signe la session de l'application) |
 | Compte rendu réel | Dictée du navigateur si disponible, sinon micro du clavier ; structuration par règles locales | Transcription FR/NL hébergée en Europe, puis structuration par l'API Claude. Même contrat : proposition, source, ambiguïté signalée, validation | Fournisseur de transcription (à choisir) ; clé API Anthropic (côté serveur) |
 | Envoi des rapports | Mise en file seulement (« En file ») | Brevo avec un domaine authentifié (SPF, DKIM), plus le traitement d'envoi du § 3 | Compte Brevo, domaine d'envoi, adresse de réponse |
 

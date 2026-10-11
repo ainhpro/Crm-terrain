@@ -68,6 +68,8 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | `npm run test:db` | Tests d'isolation sur un Postgres jetable (`initdb` local, ou `TEST_DATABASE_URL` : base au nom unique créée puis supprimée, serveur local exigé ; `DATABASE_URL` n'est jamais utilisé) |
 | `npm run typecheck` / `npm run build` | Vérification TypeScript / build de production |
 | `npm run test:e2e` | Parcours complet dans un navigateur (app sur le port 3200) |
+| `npm run supabase:migrate` / `supabase:setup` / `supabase:check` | Projet Supabase réel : migrations, configuration Auth et Storage, vérifications (sans `-- --apply`, rien n'est écrit) ; voir `docs/supabase.md` |
+| `npm run test:e2e:connexion` | Connexion Supabase (lien + code) dans un navigateur |
 | `npm run test:e2e:relecture` | Contrôles navigateur de la relecture V1 (après `db:reset` ; modifie la base de démonstration) |
 
 ## Structure
@@ -94,10 +96,10 @@ docs/                    cahier des charges, prototype, analyses
 
 ## Feuille de route V1 (module CRM)
 
-**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive. Relecture externe de la V1 traitée : `docs/revue/2026-10-10-relecture-v1-reponse.md` ; conditions du pilote : `docs/pilote-fabrice.md`.
+**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive. Relecture externe de la V1 traitée : `docs/revue/2026-10-10-relecture-v1-reponse.md` ; conditions du pilote : `docs/pilote-fabrice.md`. Branchement Supabase écrit et testé contre un faux Supabase (connexion par lien + code, Storage privé, scripts de migration et de vérification) : `docs/supabase.md`.
 
-1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; Supabase et Vercel en attente)*
-2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; reste le branchement Supabase et les écrans de connexion)*
+1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; compte Supabase créé, projet et clés en attente ; code de branchement prêt ; Vercel en attente)*
+2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; écrans de connexion Supabase faits ; reste le projet réel)*
 3. Pipelines configurables et calcul des étapes déduites. *(moteur, modèle neutre à l'inscription, éditeur Réglages › Étapes de vente et modèle INDA faits)*
 4. Import Excel avec reconnaissance des colonnes par l'IA ; exports d'autres CRM reconnus (Teamleader, Pipedrive, HubSpot, Odoo, Salesforce, Zoho) ; import des clients INDA (+ reprise de la sauvegarde du prototype, convertisseur fait).
 5. Écrans selon la maquette : Bienvenue (importer ou ajouter), Aujourd'hui, Clients, Fiche client, Compte rendu vocal.

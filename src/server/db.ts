@@ -9,11 +9,28 @@ import pg from 'pg';
 
 const globalForPool = globalThis as unknown as { crmPool?: pg.Pool };
 
+/**
+ * TLS vers Supabase : certificat vérifié avec l'autorité de Supabase (DATABASE_SSL_CA, contenu PEM
+ * téléchargé dans Project Settings › Database). Sans elle, une base distante est refusée en production
+ * plutôt que d'accepter une connexion non vérifiée. Base locale : sans TLS.
+ */
+export function sslOptions(connectionString: string, env: Record<string, string | undefined> = process.env): pg.ConnectionConfig['ssl'] {
+  const host = new URL(connectionString).hostname;
+  if (['localhost', '127.0.0.1', '::1', ''].includes(host)) return undefined;
+  const ca = env.DATABASE_SSL_CA?.replace(/\\n/g, '\n').trim();
+  if (ca) return { ca, rejectUnauthorized: true };
+  if (env.NODE_ENV === 'production') throw new Error('DATABASE_SSL_CA manquant : connexion à la base distante non vérifiée refusée.');
+  return { rejectUnauthorized: false }; // poste de développement relié à une base de test distante
+}
+
 function pool(): pg.Pool {
   if (!globalForPool.crmPool) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) throw new Error('DATABASE_URL manquant (voir .env.example et npm run db:start).');
-    globalForPool.crmPool = new pg.Pool({ connectionString, max: 10 });
+    // Les paramètres sslmode de l'adresse remplaceraient les options TLS ci-dessous : on les retire.
+    const url = new URL(connectionString);
+    for (const k of ['sslmode', 'sslcert', 'sslkey', 'sslrootcert']) url.searchParams.delete(k);
+    globalForPool.crmPool = new pg.Pool({ connectionString: url.toString(), ssl: sslOptions(connectionString), max: Number(process.env.DB_POOL_MAX) || 10 });
   }
   return globalForPool.crmPool;
 }

@@ -1,0 +1,80 @@
+// Configure le projet Supabase pour l'application (idempotent) :
+//  1. Auth : adresse du site, liens autorisés, emails de connexion FR/NL (lien vers /auth/confirmer + code) ;
+//     SMTP Brevo si ses paramètres sont fournis (le SMTP intégré de Supabase n'écrit qu'à l'équipe du projet).
+//  2. Storage : bucket privé des fichiers (photos, signatures, logos, PDF), taille et types limités.
+//   node scripts/supabase/setup.mjs            montre ce qui serait fait (aucune écriture)
+//   node scripts/supabase/setup.mjs --apply    applique
+import { BUCKET, http, managementHeaders, need, projectRef, serviceHeaders } from './lib.mjs';
+
+const apply = process.argv.includes('--apply');
+const appUrl = need('APP_URL').replace(/\/+$/, '');
+if (!/^https:\/\//.test(appUrl) && !/^http:\/\/localhost(:\d+)?$/.test(appUrl)) {
+  console.error('APP_URL doit être en https (ou http://localhost pour un essai).');
+  process.exit(2);
+}
+const ref = projectRef();
+const supabaseUrl = need('SUPABASE_URL').replace(/\/+$/, '');
+
+const link = `{{ .SiteURL }}/auth/confirmer?token_hash={{ .TokenHash }}`;
+const template = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#101828;max-width:480px">
+<p><b>Connexion</b> — Votre code : <b style="font-size:20px;letter-spacing:2px">{{ .Token }}</b></p>
+<p><a href="${link}" style="display:inline-block;background:#1849a9;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none">Se connecter</a></p>
+<hr style="border:none;border-top:1px solid #e4e7ec">
+<p><b>Aanmelden</b> — Uw code: <b style="font-size:20px;letter-spacing:2px">{{ .Token }}</b></p>
+<p><a href="${link}" style="display:inline-block;background:#1849a9;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none">Aanmelden</a></p>
+<p style="color:#667085;font-size:13px">Ce lien et ce code expirent dans une heure. Vous n'avez rien demandé ? Ignorez cet email.<br>
+Deze link en code vervallen binnen een uur. Niets aangevraagd? Negeer deze e-mail.</p>
+</div>`;
+
+const auth = {
+  site_url: appUrl,
+  uri_allow_list: `${appUrl}/**`,
+  external_email_enabled: true,
+  mailer_otp_exp: 3600,
+  mailer_otp_length: 6,
+  mailer_subjects_magic_link: 'Votre connexion · Uw aanmelding',
+  mailer_templates_magic_link_content: template,
+  mailer_subjects_confirmation: 'Votre connexion · Uw aanmelding',
+  mailer_templates_confirmation_content: template,
+};
+const smtp = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_SENDER_EMAIL'].every((k) => process.env[k]);
+if (smtp) {
+  Object.assign(auth, {
+    smtp_host: process.env.SMTP_HOST,
+    smtp_port: process.env.SMTP_PORT || '587',
+    smtp_user: process.env.SMTP_USER,
+    smtp_pass: process.env.SMTP_PASS,
+    smtp_admin_email: process.env.SMTP_SENDER_EMAIL,
+    smtp_sender_name: process.env.SMTP_SENDER_NAME || 'CRM terrain',
+  });
+}
+
+const bucket = {
+  id: BUCKET,
+  name: BUCKET,
+  public: false,
+  file_size_limit: 10 * 1024 * 1024,
+  allowed_mime_types: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'],
+};
+
+console.log(`Projet ${ref} — site ${appUrl}`);
+console.log(`Auth : adresse du site, liens autorisés ${auth.uri_allow_list}, emails FR/NL (lien + code, 1 h)${smtp ? ', SMTP personnalisé' : ''}.`);
+if (!smtp) console.log('  SMTP non fourni : le SMTP intégré de Supabase n’écrit qu’aux membres de l’équipe du projet (suffisant pour un essai).');
+console.log(`Storage : bucket « ${BUCKET} » privé, 10 Mo maximum, images et PDF.`);
+if (!apply) {
+  console.log('Rien n’a été modifié. Relancer avec --apply pour appliquer.');
+  process.exit(0);
+}
+
+let failed = false;
+const r1 = await http(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { method: 'PATCH', headers: managementHeaders(), body: auth });
+console.log(r1.ok ? 'Auth configurée.' : `ÉCHEC Auth (${r1.status}) : ${r1.text.slice(0, 300)}`);
+failed ||= !r1.ok;
+
+const exists = await http(`${supabaseUrl}/storage/v1/bucket/${BUCKET}`, { headers: serviceHeaders() });
+const r2 = exists.ok
+  ? await http(`${supabaseUrl}/storage/v1/bucket/${BUCKET}`, { method: 'PUT', headers: serviceHeaders(), body: bucket })
+  : await http(`${supabaseUrl}/storage/v1/bucket`, { method: 'POST', headers: serviceHeaders(), body: bucket });
+console.log(r2.ok ? `Bucket « ${BUCKET} » ${exists.ok ? 'mis à jour' : 'créé'} (privé).` : `ÉCHEC Storage (${r2.status}) : ${r2.text.slice(0, 300)}`);
+failed ||= !r2.ok;
+process.exit(failed ? 1 : 0);

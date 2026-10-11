@@ -9,6 +9,17 @@ const require = createRequire(import.meta.url);
 const { chromium } = (() => { try { return require('playwright'); } catch { return createRequire(process.env.PLAYWRIGHT_GLOBAL ?? '/usr/lib/node_modules/')('playwright'); } })();
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASE = process.env.E2E_BASE ?? 'http://localhost:3200';
+// Connexion : email seul (développement) ou email puis code (Supabase Auth ; E2E_CODE fourni par le service de test).
+async function login(p, email) {
+  await p.fill('#email', email);
+  await p.click('button[type=submit]');
+  await Promise.race([p.waitForURL((u) => !u.pathname.startsWith('/connexion')), p.locator('#code').waitFor()]);
+  if (await p.locator('#code').count()) {
+    await p.fill('#code', process.env.E2E_CODE ?? '123456');
+    await p.click('button[type=submit]');
+    await p.waitForURL((u) => !u.pathname.startsWith('/connexion'));
+  }
+}
 const TICKET = 'T' + Date.now().toString().slice(-6);
 const out = process.argv[2] ?? join(HERE, '../../.local/e2e');
 mkdirSync(out, { recursive: true });
@@ -24,8 +35,7 @@ const step = async (name, fn) => { try { await fn(); console.log('OK  ', name); 
 
 await step('connexion', async () => {
   await page.goto(`${BASE}/connexion`);
-  await page.fill('#email', 'fabrice@demo.local');
-  await page.click('button[type=submit]');
+  await login(page, 'fabrice@demo.local');
   await page.waitForURL(`${BASE}/`);
   await page.getByRole('heading', { name: /Bonjour/ }).waitFor();
   await shot('01-aujourdhui');
@@ -147,8 +157,7 @@ await step('isolation : un autre compte ne voit rien', async () => {
   const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const p2 = await ctx2.newPage();
   await p2.goto(`${BASE}/connexion`);
-  await p2.fill('#email', 'autre@demo.local');
-  await p2.click('button[type=submit]');
+  await login(p2, 'autre@demo.local');
   await p2.waitForURL(/bienvenue/);
   await p2.fill('#orgName', 'Autre société');
   await p2.getByRole('button', { name: 'Commencer' }).click();
