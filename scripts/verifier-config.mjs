@@ -47,7 +47,7 @@ if (!supa && mode === 'dev') {
   if (!service) todo('SUPABASE_SERVICE_ROLE_KEY absent (photos, PDF, suppression de compte)', 'Project Settings › API › clé « service_role » / « secret » — ne jamais la partager');
   else {
     try {
-      const r = await fetch(`${supa}/storage/v1/bucket/${env('SUPABASE_STORAGE_BUCKET') || 'fichiers'}`, { headers: { apikey: service, authorization: `Bearer ${service}` } });
+      const r = await fetch(`${supa}/storage/v1/bucket/${env('SUPABASE_STORAGE_BUCKET') || 'fichiers'}`, { headers: service.startsWith('eyJ') ? { apikey: service, authorization: `Bearer ${service}` } : { apikey: service } });
       if (r.ok) {
         const j = await r.json();
         if (j.public === false) ok('Stockage des fichiers : bucket privé prêt');

@@ -4,6 +4,7 @@
  * l'utilisateur, qu'il voit la ligne qui référence le fichier. Le bucket n'a aucune politique pour
  * anon ou authenticated : rien n'est lisible directement depuis un navigateur.
  */
+import { keyHeaders } from './keys';
 
 export interface StorageClientConfig {
   url: string;
@@ -20,7 +21,7 @@ function target(cfg: StorageClientConfig, path: string): string {
 }
 
 function auth(cfg: StorageClientConfig): Record<string, string> {
-  return { apikey: cfg.serviceRoleKey, authorization: `Bearer ${cfg.serviceRoleKey}` };
+  return keyHeaders(cfg.serviceRoleKey);
 }
 
 /** Dépose un fichier ; refuse d'écraser un fichier existant (chemins uniques, rien ne se remplace). */

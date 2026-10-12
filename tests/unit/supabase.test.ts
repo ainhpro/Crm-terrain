@@ -3,6 +3,7 @@ import { appUrl, authMode, storageMode, supabaseConfig } from '../../src/server/
 import { sslOptions } from '../../src/server/db';
 import { decodeSession, encodeSession } from '../../src/server/session-token';
 import { AuthError, sendLoginEmail, verifyCode, verifyLink } from '../../src/server/supabase/auth';
+import { keyHeaders } from '../../src/server/supabase/keys';
 import { downloadObject, uploadObject } from '../../src/server/supabase/storage';
 
 const SECRET = 'x'.repeat(40);
@@ -118,7 +119,7 @@ describe('Supabase Storage (serveur)', () => {
     await uploadObject({ url: 'https://p.supabase.co', serviceRoleKey: 'srv', bucket: 'fichiers', fetch: f }, path, new Uint8Array([1, 2]), 'application/pdf');
     expect(calls[0]!.url).toBe(`https://p.supabase.co/storage/v1/object/fichiers/${path}`);
     const h = calls[0]!.init.headers as Record<string, string>;
-    expect([h['x-upsert'], h.authorization, h['content-type']]).toEqual(['false', 'Bearer srv', 'application/pdf']);
+    expect([h['x-upsert'], h.apikey, h.authorization, h['content-type']]).toEqual(['false', 'srv', undefined, 'application/pdf']);
   });
   it('relit le fichier ; refuse un chemin qui sort du compte', async () => {
     const { f } = fakeFetch({ '/storage/v1/object/fichiers/': { status: 200, body: new Uint8Array([7, 8, 9]) } });
@@ -165,5 +166,16 @@ describe('hébergement', () => {
     expect(authMode({ AUTH_MODE: 'dev', VERCEL: '1' })).toBe('none');
     expect(hosted({ NETLIFY: 'true' })).toBe(true);
     expect(hosted({})).toBe(false);
+  });
+});
+
+describe('Clés Supabase', () => {
+  it('nouvelles clés (sb_…) : en-tête apikey seulement, jamais en Bearer', () => {
+    expect(keyHeaders('sb_secret_abc')).toEqual({ apikey: 'sb_secret_abc' });
+    expect(keyHeaders('sb_publishable_abc')).toEqual({ apikey: 'sb_publishable_abc' });
+  });
+  it('anciennes clés (JWT) : aussi en Bearer ; un jeton d’utilisateur va toujours en Bearer', () => {
+    expect(keyHeaders('eyJhbGc.x.y')).toEqual({ apikey: 'eyJhbGc.x.y', authorization: 'Bearer eyJhbGc.x.y' });
+    expect(keyHeaders('sb_publishable_abc', 'jwt')).toEqual({ apikey: 'sb_publishable_abc', authorization: 'Bearer jwt' });
   });
 });

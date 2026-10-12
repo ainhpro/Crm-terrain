@@ -4,6 +4,7 @@
  * On ne garde pas les jetons Supabase : une fois l'identité prouvée, l'application pose sa propre
  * session signée (session.ts) et ferme aussitôt la session Supabase.
  */
+import { keyHeaders } from './keys';
 
 export interface AuthClientConfig {
   url: string;
@@ -25,7 +26,7 @@ export class AuthError extends Error {
 }
 
 function headers(cfg: AuthClientConfig, token?: string): Record<string, string> {
-  return { apikey: cfg.anonKey, 'content-type': 'application/json', authorization: `Bearer ${token ?? cfg.anonKey}` };
+  return { ...keyHeaders(cfg.anonKey, token), 'content-type': 'application/json' };
 }
 
 async function call(cfg: AuthClientConfig, path: string, body: unknown, token?: string): Promise<Response> {
@@ -88,7 +89,7 @@ export async function deleteAuthUser(cfg: { url: string; serviceRoleKey: string;
   try {
     res = await (cfg.fetch ?? fetch)(`${cfg.url}/auth/v1/admin/users/${userId}`, {
       method: 'DELETE',
-      headers: { apikey: cfg.serviceRoleKey, authorization: `Bearer ${cfg.serviceRoleKey}` },
+      headers: keyHeaders(cfg.serviceRoleKey),
       cache: 'no-store',
     });
   } catch {

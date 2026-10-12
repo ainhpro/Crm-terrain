@@ -58,7 +58,8 @@ export async function http(url, { method = 'GET', headers = {}, body } = {}) {
 
 export const serviceHeaders = () => {
   const k = need('SUPABASE_SERVICE_ROLE_KEY');
-  return { apikey: k, authorization: `Bearer ${k}` };
+  // Nouvelles clés (sb_secret_…) : en-tête apikey seulement ; anciennes (JWT) : aussi en Bearer.
+  return k.startsWith('eyJ') ? { apikey: k, authorization: `Bearer ${k}` } : { apikey: k };
 };
 export const managementHeaders = () => ({ authorization: `Bearer ${need('SUPABASE_ACCESS_TOKEN')}` });
 
