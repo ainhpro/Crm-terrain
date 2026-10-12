@@ -8,6 +8,8 @@ import { parseEuroToCents } from '@/modules/interventions/pricing';
 import { extractTicketNumbers, normalizeTicket } from '@/modules/interventions/references';
 import { parseRequestEmail, type ParsedRequest } from '@/modules/interventions/request';
 import { getMessages, isLocale } from '@/i18n';
+import { aiEnabled } from '../ai/claude';
+import { parseRequestWithAi } from '../ai/request';
 import { requireCtx } from '../context';
 import { pgCode, type Q, withService, withUser } from '../db';
 import { loadVisit } from '../interventions';
@@ -30,6 +32,7 @@ export interface RequestDraft {
   body: string;
   parsed: ParsedRequest;
   matchingCases: { id: string; label: string }[];
+  engine: 'ai' | 'rules';
 }
 
 /** Lit l'email collé et propose les champs, chacun avec sa source. Rien n'est enregistré. */
@@ -38,7 +41,9 @@ export async function readRequest(_: RequestDraft | null, formData: FormData): P
   const subject = str(formData, 'subject');
   const body = str(formData, 'body');
   if (!subject && !body) return null;
-  const parsed = parseRequestEmail(subject, body);
+  // IA si elle est configurée ; sinon, ou si elle ne répond pas, la lecture par règles (même format).
+  const byAi = aiEnabled() ? await parseRequestWithAi(subject, body).catch(() => null) : null;
+  const parsed = byAi ?? parseRequestEmail(subject, body);
   // Un dossier existe-t-il déjà pour ce numéro ? Rattachement proposé, jamais automatique (M03).
   const matchingCases = parsed.tickets.value.length
     ? await withUser(ctx.userId, async (q) =>
@@ -52,7 +57,7 @@ export async function readRequest(_: RequestDraft | null, formData: FormData): P
         ).rows,
       )
     : [];
-  return { subject, body, parsed, matchingCases };
+  return { subject, body, parsed, matchingCases, engine: byAi ? 'ai' : 'rules' };
 }
 
 /** Crée le client si besoin, le dossier, ses tickets et le premier passage, en une transaction. */

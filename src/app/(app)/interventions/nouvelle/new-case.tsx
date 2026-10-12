@@ -53,6 +53,7 @@ export function NewCaseFlow({
       {(mode === 'manual' || draft) && (
         <form action={createCase} className="stack" key={draft ? draft.subject + draft.body : 'manual'}>
           {draft && <h2>{t.interventions.understood}</h2>}
+          {draft && <p className="faint">{draft.engine === 'ai' ? t.interventions.engineAi : t.interventions.engineRules}</p>}
           <input type="hidden" name="subject" value={draft?.subject ?? ''} />
           <input type="hidden" name="body" value={draft?.body ?? ''} />
           <label className="field">{t.interventions.principal}

@@ -70,6 +70,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | `npm run test:e2e` | Parcours complet dans un navigateur (app sur le port 3200) |
 | `npm run supabase:migrate` / `supabase:setup` / `supabase:check` | Projet Supabase réel : migrations, configuration Auth et Storage, vérifications (sans `-- --apply`, rien n'est écrit) ; voir `docs/supabase.md` |
 | `npm run test:e2e:connexion` | Connexion Supabase (lien + code) dans un navigateur |
+| `npm run test:e2e:ia` | Compte rendu et lecture d'email par l'IA contre un faux service (voir l'en-tête du script) |
 | `npm run test:e2e:envois` | Envoi des emails contre un faux Brevo : envoi, coupure « à vérifier », refus et renvoi (voir l'en-tête du script) |
 | `npm run test:e2e:rgpd` | Export complet, suppression d'un compte et d'une entreprise dans un navigateur (après `db:reset` ; supprime des données de démonstration) |
 | `npm run test:e2e:relecture` | Contrôles navigateur de la relecture V1 (après `db:reset` ; modifie la base de démonstration) |
@@ -98,7 +99,7 @@ docs/                    cahier des charges, prototype, analyses
 
 ## Feuille de route V1 (module CRM)
 
-**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive. Relecture externe de la V1 traitée : `docs/revue/2026-10-10-relecture-v1-reponse.md` ; conditions du pilote : `docs/pilote-fabrice.md`. Branchement Supabase écrit et testé contre un faux Supabase (connexion par lien + code, Storage privé, scripts de migration et de vérification) : `docs/supabase.md`. RGPD (règle 10) : export complet et suppression de l'entreprise ou du compte dans Réglages › Vos données. Envoi des emails (Brevo) : traitement sans doublon, résultats incertains laissés à l'utilisateur (`docs/pilote-fabrice.md` § 3) ; reste la clé Brevo.
+**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive. Relecture externe de la V1 traitée : `docs/revue/2026-10-10-relecture-v1-reponse.md` ; conditions du pilote : `docs/pilote-fabrice.md`. Branchement Supabase écrit et testé contre un faux Supabase (connexion par lien + code, Storage privé, scripts de migration et de vérification) : `docs/supabase.md`. RGPD (règle 10) : export complet et suppression de l'entreprise ou du compte dans Réglages › Vos données. Envoi des emails (Brevo) : traitement sans doublon, résultats incertains laissés à l'utilisateur (`docs/pilote-fabrice.md` § 3) ; reste la clé Brevo. IA (Claude, `src/server/ai/`) : compte rendu et lecture d'email, propositions revérifiées par le code (`ai-check.ts`) ; reste la clé Anthropic et le choix de la transcription.
 
 1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; compte Supabase créé, projet et clés en attente ; code de branchement prêt ; Vercel en attente)*
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; écrans de connexion Supabase faits ; reste le projet réel)*

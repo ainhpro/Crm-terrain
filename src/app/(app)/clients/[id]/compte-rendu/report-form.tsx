@@ -30,6 +30,7 @@ export function ReportForm({ clientId, t, common, locale }: { clientId: string; 
           <input type="hidden" name="clientId" value={clientId} />
           <input type="hidden" name="text" value={proposal.text} />
           <h2>{t.proposal}</h2>
+          <p className="faint">{proposal.engine === 'ai' ? t.engineAi : t.engineRules}</p>
           <div className="card pad stack">
             <span className="label">{t.summary}</span>
             <p>{proposal.summary}</p>

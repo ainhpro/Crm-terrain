@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ACTION_STATUSES, DEAL_STATUSES, type ActionStatus } from '@/modules/crm/pipeline/types';
 import { buildImport, type CrmSource, type ExistingClient, MAX_COLUMNS, type Mapping, TARGET_FIELDS, type TargetField } from '@/modules/crm/import/columns';
+import { aiEnabled } from '../ai/claude';
+import { structureReportWithAi } from '../ai/report';
 import { loadClient } from '../crm';
 import { requireCtx } from '../context';
 import { pgCode, withUser } from '../db';
@@ -227,6 +229,8 @@ export interface ReportProposal {
   /** Actions encore ouvertes par étape : celles qui matérialisent l'étape sont proposées à la clôture (M01). */
   openActions: Record<string, { id: string; label: string; close: boolean }[]>;
   tasks: { text: string; dueOn: string | null; source: string }[];
+  /** Qui a préparé la proposition : l'IA, ou les règles locales (IA absente ou indisponible). */
+  engine: 'ai' | 'rules';
 }
 
 // Statuts qui matérialisent l'avancement d'une étape ; une relance ou une attente reste un rappel à part.
@@ -244,7 +248,14 @@ export async function prepareReport(_: ReportProposal | null, formData: FormData
   const options = open.flatMap((d) =>
     d.pipeline.steps.map((s) => ({ id: `${d.row.id}:${s.id}`, code: s.code, label: `${s.label} (${d.row.name})`, stepLabel: s.label, group: d.row.id })),
   );
-  const r = structureReport(text, options, ctx.today);
+  // IA si elle est configurée ; sinon, ou si elle ne répond pas, les règles locales (même format).
+  let engine: ReportProposal['engine'] = 'rules';
+  let r = null;
+  if (aiEnabled()) {
+    r = await structureReportWithAi(text, options, ctx.today).catch(() => null);
+    if (r) engine = 'ai';
+  }
+  r ??= structureReport(text, options, ctx.today);
   const openActions: ReportProposal['openActions'] = {};
   for (const a of data.actions) {
     if (!a.deal_id || !a.step_id || a.status === 'done') continue;
@@ -264,6 +275,7 @@ export async function prepareReport(_: ReportProposal | null, formData: FormData
     steps: options.map((o) => ({ value: o.id, label: o.label })),
     openActions,
     tasks: r.tasks,
+    engine,
   };
 }
 
