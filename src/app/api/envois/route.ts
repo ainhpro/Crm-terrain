@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { runOutbox } from '@/server/outbox-run';
 
 /**
- * Passage de rattrapage du traitement d'envoi (tâche planifiée Vercel) : envois restés en file,
+ * Passage de rattrapage du traitement d'envoi (fonction planifiée Netlify ou tâche Vercel) : envois restés en file,
  * traitements interrompus (passés « à vérifier »). Protégé par CRON_SECRET (en-tête Authorization).
  */
 export async function GET(request: Request) {

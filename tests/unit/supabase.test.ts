@@ -157,3 +157,13 @@ describe('suppressions côté Supabase (règle 10)', () => {
     await expect(deleteAuthUser({ url: 'https://p.supabase.co', serviceRoleKey: 'srv', fetch: f }, 'x')).rejects.toBeInstanceOf(AuthError);
   });
 });
+
+describe('hébergement', () => {
+  it('connexion de développement refusée chez Netlify comme chez Vercel', async () => {
+    const { authMode, hosted } = await import('../../src/server/config');
+    expect(authMode({ AUTH_MODE: 'dev', NETLIFY: 'true' })).toBe('none');
+    expect(authMode({ AUTH_MODE: 'dev', VERCEL: '1' })).toBe('none');
+    expect(hosted({ NETLIFY: 'true' })).toBe(true);
+    expect(hosted({})).toBe(false);
+  });
+});

@@ -2,7 +2,7 @@
  * Configuration lue dans l'environnement, côté serveur uniquement (aucune clé en NEXT_PUBLIC_).
  * Deux façons de se connecter, jamais en même temps :
  * - « supabase » : Supabase Auth, lien ou code envoyé par email (preuve de possession de l'adresse) ;
- * - « dev » : email seul, sur un poste de développement uniquement (jamais en production ni sur Vercel).
+ * - « dev » : email seul, sur un poste de développement uniquement (jamais en production ni sur Vercel ou Netlify).
  */
 
 export type AuthMode = 'supabase' | 'dev' | 'none';
@@ -27,9 +27,14 @@ export function supabaseConfig(env: Env = process.env): SupabaseConfig | null {
   return { url, anonKey, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null, bucket: env.SUPABASE_STORAGE_BUCKET?.trim() || 'fichiers' };
 }
 
+/** Hébergé chez Vercel ou Netlify (production, prévisualisations, branches) ? */
+export function hosted(env: Env = process.env): boolean {
+  return Boolean(env.VERCEL || env.VERCEL_ENV || env.NETLIFY || env.NETLIFY_IMAGES_CDN_DOMAIN || env.SITE_ID && env.DEPLOY_ID);
+}
+
 /** Le mode développement n'existe que sur un poste de développement. */
 export function devAuthAllowed(env: Env = process.env): boolean {
-  return env.AUTH_MODE === 'dev' && env.NODE_ENV !== 'production' && !env.VERCEL && !env.VERCEL_ENV;
+  return env.AUTH_MODE === 'dev' && env.NODE_ENV !== 'production' && !hosted(env);
 }
 
 export function authMode(env: Env = process.env): AuthMode {

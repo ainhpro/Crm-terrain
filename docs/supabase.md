@@ -1,4 +1,6 @@
-# Mise en service sur Supabase (Francfort) et Vercel
+# Mise en service sur Supabase (Francfort) et Vercel ou Netlify
+
+Hébergement choisi : Netlify, voir `docs/mise-en-ligne-netlify.md`. La configuration Vercel (`vercel.json`) reste utilisable.
 
 État au 11 octobre 2026 : le code de branchement est écrit et testé contre une copie locale qui imite Supabase. Il n'a encore jamais tourné contre le vrai projet : les clés ne sont pas encore disponibles.
 
@@ -8,8 +10,8 @@
 |---|---|---|
 | Connexion | Supabase Auth sans mot de passe : l'utilisateur reçoit **un lien et un code à 6 chiffres**. Le serveur vérifie auprès de Supabase, pose la session signée de l'application, puis ferme la session Supabase. Ouvrir le lien ne connecte pas : il faut appuyer sur un bouton, sinon les antivirus de messagerie consommeraient les liens. Dès que Supabase est configuré, la connexion par email seul est impossible, et un cookie de développement, même correctement signé, est refusé. | `src/server/supabase/auth.ts`, `src/server/actions/auth.ts`, `src/app/connexion/`, `src/app/auth/confirmer/`, `src/server/session.ts`, `src/server/session-token.ts` |
 | Base | Même code qu'en local. `withUser` ouvre une transaction, passe au rôle `authenticated` et pose l'identité de l'utilisateur dans les claims, exactement comme l'API Supabase : la RLS s'applique. TLS vérifié avec le certificat de Supabase (`DATABASE_SSL_CA`, obligatoire en production). | `src/server/db.ts` |
-| Fichiers | Supabase Storage, bucket privé `fichiers`. Traitement serveur nommé : seule la clé `service_role` y accède, et seulement après le contrôle RLS de la route qui sert le fichier. Chemins uniques, jamais écrasés. Le disque local reste refusé sur Vercel. | `src/server/supabase/storage.ts`, `src/server/storage.ts` |
-| Hébergement | Fonctions Vercel en région Francfort (`fra1`). | `vercel.json` |
+| Fichiers | Supabase Storage, bucket privé `fichiers`. Traitement serveur nommé : seule la clé `service_role` y accède, et seulement après le contrôle RLS de la route qui sert le fichier. Chemins uniques, jamais écrasés. Le disque local reste refusé sur Vercel et Netlify. | `src/server/supabase/storage.ts`, `src/server/storage.ts` |
+| Hébergement | Netlify (région des fonctions à régler sur Francfort) ou Vercel (`fra1`). | `netlify.toml`, `vercel.json` |
 
 ## Scripts
 

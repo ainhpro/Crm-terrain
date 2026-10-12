@@ -1,0 +1,17 @@
+# Déploiement Netlify (voir docs/mise-en-ligne-netlify.md).
+# Next.js est pris en charge par l'adaptateur officiel de Netlify (détecté automatiquement).
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Passage de rattrapage quotidien des envois d'emails (netlify/functions/envois.mts).
+[functions]
+  directory = "netlify/functions"
+
+# Adaptateur Next.js de Netlify, version figée (comme toutes les dépendances du projet).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

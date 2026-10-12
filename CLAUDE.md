@@ -33,7 +33,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | Brique | Choix |
 |---|---|
 | Application | Next.js + TypeScript, PWA installable |
-| Hébergement | Vercel, région Europe |
+| Hébergement | Netlify, fonctions à Francfort (`netlify.toml`, `docs/mise-en-ligne-netlify.md`) ; Vercel reste possible (`vercel.json`) |
 | Base, auth, fichiers | Supabase, région Francfort (Postgres + RLS + Storage) |
 | IA | API Claude (structuration des rapports, lecture des imports) |
 | Transcription | Service vocal FR/NL/IT, hébergé en Europe de préférence (à choisir) |
@@ -75,6 +75,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | `npm run test:e2e:ia` | Compte rendu et lecture d'email par l'IA contre un faux service (voir l'en-tête du script) |
 | `npm run test:e2e:envois` | Envoi des emails contre un faux Brevo : envoi, coupure « à vérifier », refus et renvoi (voir l'en-tête du script) |
 | `npm run test:e2e:rgpd` | Export complet, suppression d'un compte et d'une entreprise dans un navigateur (après `db:reset` ; supprime des données de démonstration) |
+| `npm run test:e2e:reprise` | Reprise de la sauvegarde de l'ancienne application dans un navigateur (après `db:reset`) |
 | `npm run test:e2e:relecture` | Contrôles navigateur de la relecture V1 (après `db:reset` ; modifie la base de démonstration) |
 
 ## Structure
@@ -101,12 +102,12 @@ docs/                    cahier des charges, prototype, analyses
 
 ## Feuille de route V1 (module CRM)
 
-**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive. Relecture externe de la V1 traitée : `docs/revue/2026-10-10-relecture-v1-reponse.md` ; conditions du pilote : `docs/pilote-fabrice.md`. Branchement Supabase écrit et testé contre un faux Supabase (connexion par lien + code, Storage privé, scripts de migration et de vérification) : `docs/supabase.md`. RGPD (règle 10) : export complet et suppression de l'entreprise ou du compte dans Réglages › Vos données. Envoi des emails (Brevo) : traitement sans doublon, résultats incertains laissés à l'utilisateur (`docs/pilote-fabrice.md` § 3) ; reste la clé Brevo. IA (Claude, `src/server/ai/`) : compte rendu et lecture d'email, propositions revérifiées par le code (`ai-check.ts`) ; reste la clé Anthropic et le choix de la transcription.
+**État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Netlify, API Claude, transcription, Brevo, OneDrive / Google Drive. Relecture externe de la V1 traitée : `docs/revue/2026-10-10-relecture-v1-reponse.md` ; conditions du pilote : `docs/pilote-fabrice.md`. Branchement Supabase écrit et testé contre un faux Supabase (connexion par lien + code, Storage privé, scripts de migration et de vérification) : `docs/supabase.md`. RGPD (règle 10) : export complet et suppression de l'entreprise ou du compte dans Réglages › Vos données. Envoi des emails (Brevo) : traitement sans doublon, résultats incertains laissés à l'utilisateur (`docs/pilote-fabrice.md` § 3) ; reste la clé Brevo. IA (Claude, `src/server/ai/`) : compte rendu et lecture d'email, propositions revérifiées par le code (`ai-check.ts`) ; reste la clé Anthropic et le choix de la transcription.
 
-1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; compte Supabase créé, projet et clés en attente ; code de branchement prêt ; Vercel en attente)*
+1. Dépôt GitHub, projet Supabase (Francfort), site Netlify. *(dépôt fait ; compte Supabase créé, projet et clés en attente ; code de branchement prêt ; Netlify prêt et vérifié en local, site en attente)*
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; écrans de connexion Supabase faits ; reste le projet réel)*
 3. Pipelines configurables et calcul des étapes déduites. *(moteur, modèle neutre à l'inscription, éditeur Réglages › Étapes de vente et modèle INDA faits)*
-4. Import Excel avec reconnaissance des colonnes par l'IA ; exports d'autres CRM reconnus (Teamleader, Pipedrive, HubSpot, Odoo, Salesforce, Zoho) ; import des clients INDA (+ reprise de la sauvegarde du prototype, convertisseur fait).
+4. Import Excel avec reconnaissance des colonnes par l'IA ; exports d'autres CRM reconnus (Teamleader, Pipedrive, HubSpot, Odoo, Salesforce, Zoho) ; import des clients INDA ; reprise de la sauvegarde de l'ancienne application (bouton BACKUP) dans Clients › Importer › Reprendre l'ancien CRM, sans doublon si refaite.
 5. Écrans selon la maquette : Bienvenue (importer ou ajouter), Aujourd'hui, Clients, Fiche client, Compte rendu vocal.
 6. Rapport vocal : enregistrement, transcription, structuration, validation.
 7. Tâches, relances automatiques (A : 6 semaines, B : 2 mois, C : 3 mois, réglables), email du matin.

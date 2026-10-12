@@ -117,7 +117,7 @@ Gardez ce tableau sous la main et notez ce qui coince : un mot pas clair, un bou
 | 9 | **NL** en haut à droite | Toute l'interface passe en néerlandais |
 | 10 | **Réglages › Vos données › Exporter** | Une archive avec toutes vos données |
 
-Sur PC, la dictée marche dans Chrome ou Edge avec le micro. Le vrai test au téléphone viendra avec la mise en ligne sur Vercel (adresse https), qui est la prochaine étape.
+Sur PC, la dictée marche dans Chrome ou Edge avec le micro. Pour le téléphone, mettez l'application en ligne sur Netlify : `docs/mise-en-ligne-netlify.md`. Vos données de l'ancienne application se reprennent dans **Clients › Importer › Reprendre l'ancien CRM** (même guide, § 7).
 
 ## 9. Travailler avec Claude Code sur ce PC
 

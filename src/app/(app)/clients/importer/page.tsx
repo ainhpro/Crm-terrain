@@ -11,6 +11,7 @@ export default async function ImportPage() {
         <h1>{t.import.title}</h1>
       </div>
       <p className="muted">{t.import.lead}</p>
+      <a className="note info" href="/clients/reprise">{t.reprise.link}</a>
       <ImportFlow t={t.import} fields={t.clients} common={t.common} />
     </main>
   );

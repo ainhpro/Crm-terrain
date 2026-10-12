@@ -5,7 +5,7 @@ import { withUser } from '@/server/db';
 
 const TAG: Record<string, string> = { finished: 'ok', late: 'bad', in_progress: 'accent', not_started: '', closed: '' };
 
-export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; groupe?: string; filtre?: string; importes?: string }> }) {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; groupe?: string; filtre?: string; importes?: string; repris?: string; ignores?: string }> }) {
   const ctx = await requireCtx();
   const { t } = ctx;
   const sp = await searchParams;
@@ -36,6 +36,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         </div>
       </div>
       {sp.importes && <Flash>{sp.importes} {t.import.done}</Flash>}
+      {sp.repris && <Flash>{sp.repris} {t.reprise.done}{sp.ignores && sp.ignores !== '0' ? ` · ${sp.ignores} ${t.reprise.skipped}` : ''}</Flash>}
       <form role="search">
         <label className="visually-hidden" htmlFor="q">{t.common.search}</label>
         <input type="search" id="q" name="q" defaultValue={sp.q} placeholder={t.clients.search} />

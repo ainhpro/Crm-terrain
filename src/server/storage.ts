@@ -2,7 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { storageMode, supabaseConfig } from './config';
+import { hosted, storageMode, supabaseConfig } from './config';
 import { downloadObject, removeFolder, type StorageClientConfig, uploadObject } from './supabase/storage';
 
 /**
@@ -23,11 +23,11 @@ const ALLOWED = new Map([
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 /**
- * Le disque des fonctions Vercel n'est pas durable : y écrire perdrait photos, signatures et PDF
+ * Le disque des fonctions Vercel ou Netlify n'est pas durable : y écrire perdrait photos, signatures et PDF
  * (relecture D04). Tant que Supabase Storage n'est pas branché, on refuse au lieu de perdre.
  */
 function assertDurable(): void {
-  if (process.env.VERCEL) throw new Error('durable_storage_required');
+  if (hosted()) throw new Error('durable_storage_required');
 }
 
 function remote(): StorageClientConfig | null {
