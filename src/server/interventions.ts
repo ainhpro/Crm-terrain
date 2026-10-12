@@ -182,7 +182,7 @@ export async function loadVisit(q: Q, visitId: string, userId: string) {
   if (!v) return null;
   const [workers, media, versions] = await Promise.all([
     q<{ id: string; user_id: string; name: string | null; arrived_at: string | null; left_at: string | null; break_minutes: number }>(
-      `select w.id, w.user_id, coalesce(p.full_name, p.email) as name, w.arrived_at, w.left_at, w.break_minutes
+      `select w.id, w.user_id, coalesce(w.worker_name, p.full_name, p.email) as name, w.arrived_at, w.left_at, w.break_minutes
        from visit_workers w left join profiles p on p.id = w.user_id where w.visit_id = $1 order by w.arrived_at nulls last`,
       [visitId],
     ).then((r) => r.rows),

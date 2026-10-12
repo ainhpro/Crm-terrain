@@ -20,7 +20,8 @@
     "test:e2e:connexion": "node tests/e2e/connexion-supabase.mjs",
     "supabase:migrate": "node --env-file-if-exists=.env.supabase scripts/supabase/migrate.mjs",
     "supabase:setup": "node --env-file-if-exists=.env.supabase scripts/supabase/setup.mjs",
-    "supabase:check": "node --env-file-if-exists=.env.supabase scripts/supabase/check.mjs"
+    "supabase:check": "node --env-file-if-exists=.env.supabase scripts/supabase/check.mjs",
+    "test:e2e:rgpd": "node tests/e2e/rgpd.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

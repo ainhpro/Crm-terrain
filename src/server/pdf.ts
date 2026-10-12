@@ -38,7 +38,7 @@ export async function renderReportPdf(q: Q, versionId: string, t: Messages, audi
   if (!r) return null;
   const workers = (
     await q<{ name: string | null; arrived_at: string | null; left_at: string | null; break_minutes: number }>(
-      `select coalesce(pr.full_name, pr.email) as name, w.arrived_at, w.left_at, w.break_minutes from visit_workers w left join profiles pr on pr.id = w.user_id where w.visit_id = $1`,
+      `select coalesce(w.worker_name, pr.full_name, pr.email) as name, w.arrived_at, w.left_at, w.break_minutes from visit_workers w left join profiles pr on pr.id = w.user_id where w.visit_id = $1`,
       [r.visit_id],
     )
   ).rows;

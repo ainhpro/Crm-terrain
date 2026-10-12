@@ -1,5 +1,6 @@
 import { headers } from 'next/headers';
 import { Flash } from '@/components';
+import { deleteMyAccount, deleteOrganization } from '@/server/actions/account';
 import { logout } from '@/server/actions/auth';
 import {
   addPipeline, addPrincipal, addPrincipalAddress, addStep, addType, archiveStep, inviteMember, moveStep, renamePipeline, renameStep,
@@ -43,7 +44,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const isOwner = ctx.role === 'owner';
   const me = data.members.find((m) => m.user_id === ctx.userId);
   const editable = isOwner ? data.members : me ? [me] : [];
-  const errorText = sp.erreur === 'vat' ? t.settings.vatInvalid : sp.erreur === 'owner' ? t.settings.ownerOnly : sp.erreur === 'inUse' ? t.settings.stepsInUse : t.common.error;
+  const errorText = sp.erreur === 'vat' ? t.settings.vatInvalid : sp.erreur === 'owner' ? t.settings.ownerOnly : sp.erreur === 'inUse' ? t.settings.stepsInUse : sp.erreur === 'confirm' ? t.settings.confirmError : sp.erreur === 'lastOwner' ? t.settings.lastOwner : t.common.error;
 
   const MemberForm = ({ m }: { m: Member }) => {
     const o = readOptions(m.options);
@@ -246,6 +247,37 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </form>
         </section>
       )}
+
+      <section className="stack" id="donnees">
+        <h2>{t.settings.data}</h2>
+        <p className="faint">{t.settings.dataHint}</p>
+        {isOwner && (
+          <div className="card pad stack">
+            <a className="btn block" href="/reglages/export" download>{t.settings.export}</a>
+            <p className="faint">{t.settings.exportHint}</p>
+          </div>
+        )}
+        {isOwner && (
+          <details className="card pad">
+            <summary className="danger">{t.settings.deleteOrg}</summary>
+            <form action={deleteOrganization} className="stack" style={{ marginTop: 10 }}>
+              <p className="small">{t.settings.deleteOrgHint}</p>
+              <label className="field">{t.settings.confirmName.replace('{name}', ctx.orgName)}<input type="text" name="confirmName" autoComplete="off" required /></label>
+              <label className="row small"><input type="checkbox" name="confirm" required />{t.settings.confirmCheck}</label>
+              <button className="btn block danger" type="submit">{t.settings.deleteOrgButton}</button>
+            </form>
+          </details>
+        )}
+        <details className="card pad">
+          <summary className="danger">{t.settings.deleteMe}</summary>
+          <form action={deleteMyAccount} className="stack" style={{ marginTop: 10 }}>
+            <p className="small">{t.settings.deleteMeHint}</p>
+            <label className="field">{t.settings.confirmEmail}<input type="email" name="confirmEmail" autoComplete="off" required /></label>
+            <label className="row small"><input type="checkbox" name="confirm" required />{t.settings.confirmCheck}</label>
+            <button className="btn block danger" type="submit">{t.settings.deleteMeButton}</button>
+          </form>
+        </details>
+      </section>
 
       <form action={logout}><button className="btn block" type="submit">{t.auth.logout}</button></form>
     </main>

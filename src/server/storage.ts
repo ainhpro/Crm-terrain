@@ -1,9 +1,9 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { storageMode, supabaseConfig } from './config';
-import { downloadObject, type StorageClientConfig, uploadObject } from './supabase/storage';
+import { downloadObject, removeFolder, type StorageClientConfig, uploadObject } from './supabase/storage';
 
 /**
  * Stockage privé des fichiers (photos, signatures, logos, PDF). En local : un dossier hors du site
@@ -67,4 +67,17 @@ export async function readStored(path: string): Promise<Buffer> {
   const full = resolve(ROOT, path);
   if (!full.startsWith(ROOT + '/')) throw new Error('invalid_path');
   return readFile(/*turbopackIgnore: true*/ full);
+}
+
+/** Supprime tous les fichiers d'une entreprise (après la suppression de ses données, règle 10). */
+export async function deleteOrgFiles(orgId: string): Promise<void> {
+  if (!/^[0-9a-f-]{36}$/i.test(orgId)) throw new Error('invalid_path');
+  const r = remote();
+  if (r) {
+    await removeFolder(r, orgId);
+    return;
+  }
+  const dir = resolve(ROOT, orgId);
+  if (!dir.startsWith(ROOT + '/')) throw new Error('invalid_path');
+  await rm(/*turbopackIgnore: true*/ dir, { recursive: true, force: true });
 }

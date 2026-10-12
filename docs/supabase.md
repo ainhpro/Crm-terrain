@@ -52,5 +52,5 @@
 
 ## Points connus
 
-- **Suppression d'un compte** : la suppression d'un utilisateur Supabase est bloquée s'il a enregistré des heures d'intervention (`visit_workers`, `on delete restrict`). C'est voulu pour garder les rapports intacts. La suppression de compte (RGPD, règle 10) devra prévoir l'anonymisation : à traiter avec l'export et la suppression du compte.
+- **Suppression d'un compte** (règle 10, migration `20261014000001_rgpd.sql`) : le compte Auth est supprimé par le traitement serveur nommé « suppression de compte » (clé `service_role`). Les heures d'intervention gardent le nom de l'intervenant, ce qui laisse les rapports justes. La suppression d'une entreprise efface aussi ses fichiers dans le bucket.
 - **Session** : la session de l'application dure 30 jours. Un utilisateur supprimé dans Supabase perd l'accès tout de suite : son profil disparaît, donc plus rien n'est chargé.

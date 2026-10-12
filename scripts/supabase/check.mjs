@@ -10,7 +10,7 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { BUCKET, connectDb, http, need, serviceHeaders } from './lib.mjs';
 
-const EXPECTED_CALLABLE = ['accept_invitation', 'create_organization', 'invite_member', 'is_member', 'is_owner', 'reorder_pipeline_steps'];
+const EXPECTED_CALLABLE = ['accept_invitation', 'create_organization', 'delete_organization', 'invite_member', 'is_member', 'is_owner', 'reorder_pipeline_steps'];
 const url = need('SUPABASE_URL').replace(/\/+$/, '');
 const anon = need('SUPABASE_ANON_KEY');
 const results = [];

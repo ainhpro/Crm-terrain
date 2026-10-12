@@ -128,3 +128,32 @@ describe('Supabase Storage (serveur)', () => {
     await expect(downloadObject(cfg, `${USER}/../../x.pdf`)).rejects.toThrow('invalid_path');
   });
 });
+
+describe('suppressions côté Supabase (règle 10)', () => {
+  it('supprime tous les fichiers du dossier de l’entreprise, par lots, et rien d’autre', async () => {
+    const names = Array.from({ length: 130 }, (_, i) => `${String(i).padStart(8, '0')}-2222-4222-8222-222222222222.png`);
+    const deleted: string[] = [];
+    const f = (async (url: string, init: RequestInit) => {
+      if (url.includes('/object/list/')) {
+        const left = names.filter((n) => !deleted.includes(`${USER}/${n}`)).slice(0, 100);
+        return new Response(JSON.stringify([...left.map((name) => ({ name })), { name: 'piege/../x' }]), { status: 200 });
+      }
+      deleted.push(...(JSON.parse(String(init.body)) as { prefixes: string[] }).prefixes);
+      return new Response('[]', { status: 200 });
+    }) as unknown as typeof fetch;
+    const { removeFolder } = await import('../../src/server/supabase/storage');
+    expect(await removeFolder({ url: 'https://p.supabase.co', serviceRoleKey: 'srv', bucket: 'fichiers', fetch: f }, USER)).toBe(130);
+    expect(deleted.every((p) => p.startsWith(`${USER}/`) && !p.includes('..'))).toBe(true);
+    await expect(removeFolder({ url: 'https://p.supabase.co', serviceRoleKey: 'srv', bucket: 'fichiers', fetch: f }, '../tout')).rejects.toThrow('invalid_path');
+  });
+
+  it('supprime le compte Auth avec la clé serveur ; un compte déjà absent n’est pas une erreur', async () => {
+    const { deleteAuthUser } = await import('../../src/server/supabase/auth');
+    const { f, calls } = fakeFetch({ '/auth/v1/admin/users/': { status: 200, body: {} } });
+    await deleteAuthUser({ url: 'https://p.supabase.co', serviceRoleKey: 'srv', fetch: f }, USER);
+    expect([calls[0]!.url, calls[0]!.init.method]).toEqual([`https://p.supabase.co/auth/v1/admin/users/${USER}`, 'DELETE']);
+    const gone = fakeFetch({ '/auth/v1/admin/users/': { status: 404, body: {} } });
+    await expect(deleteAuthUser({ url: 'https://p.supabase.co', serviceRoleKey: 'srv', fetch: gone.f }, USER)).resolves.toBeUndefined();
+    await expect(deleteAuthUser({ url: 'https://p.supabase.co', serviceRoleKey: 'srv', fetch: f }, 'x')).rejects.toBeInstanceOf(AuthError);
+  });
+});

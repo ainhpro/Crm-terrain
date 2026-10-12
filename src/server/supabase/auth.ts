@@ -80,3 +80,19 @@ export async function verifyLink(cfg: AuthClientConfig, tokenHash: string): Prom
   if (!/^[A-Za-z0-9_-]{10,200}$/.test(tokenHash)) throw new AuthError('invalid');
   return verified(cfg, await call(cfg, 'verify', { type: 'email', token_hash: tokenHash }));
 }
+
+/** Suppression définitive d'un compte Auth (traitement serveur nommé « suppression de compte », clé service_role). */
+export async function deleteAuthUser(cfg: { url: string; serviceRoleKey: string; fetch?: typeof fetch }, userId: string): Promise<void> {
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new AuthError('invalid');
+  let res: Response;
+  try {
+    res = await (cfg.fetch ?? fetch)(`${cfg.url}/auth/v1/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: { apikey: cfg.serviceRoleKey, authorization: `Bearer ${cfg.serviceRoleKey}` },
+      cache: 'no-store',
+    });
+  } catch {
+    throw new AuthError('unavailable');
+  }
+  if (!res.ok && res.status !== 404) throw new AuthError(res.status >= 500 ? 'unavailable' : 'invalid', `HTTP ${res.status}`);
+}

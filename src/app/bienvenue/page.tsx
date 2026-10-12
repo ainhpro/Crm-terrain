@@ -5,13 +5,13 @@ import { createAccount } from '@/server/actions/onboarding';
 import { currentUser } from '@/server/context';
 import { withUser } from '@/server/db';
 
-export default async function WelcomePage({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
+export default async function WelcomePage({ searchParams }: { searchParams: Promise<{ erreur?: string; supprime?: string }> }) {
   const user = await currentUser();
   if (!user) redirect('/connexion');
   const hasOrg = await withUser(user.userId, async (q) => (await q(`select 1 from organization_members where user_id = $1`, [user.userId])).rowCount);
   if (hasOrg) redirect('/');
   const { t } = await getServerMessages();
-  const { erreur } = await searchParams;
+  const { erreur, supprime } = await searchParams;
   const profiles = [
     ['commercial', t.welcome.commercial, t.welcome.commercialHint],
     ['technician', t.welcome.technician, t.welcome.technicianHint],
@@ -27,6 +27,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         <h1>{t.welcome.title}</h1>
         <p className="muted">{t.welcome.lead}</p>
         {erreur && <Flash kind="bad">{t.common.error}</Flash>}
+        {supprime && <Flash kind={supprime === '1' ? 'ok' : 'warn'}>{supprime === '1' ? t.welcome.deleted : t.welcome.deletedFiles}</Flash>}
         <label className="field">
           {t.welcome.orgName}
           <input type="text" name="orgName" id="orgName" required maxLength={120} />

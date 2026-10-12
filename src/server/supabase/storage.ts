@@ -39,3 +39,31 @@ export async function downloadObject(cfg: StorageClientConfig, path: string): Pr
   if (!res.ok) throw new Error(`storage_download_${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
+
+/** Supprime tous les fichiers d'un compte (dossier <organisation>/), par lots ; renvoie le nombre supprimé. */
+export async function removeFolder(cfg: StorageClientConfig, orgId: string): Promise<number> {
+  if (!/^[0-9a-f-]{36}$/i.test(orgId)) throw new Error('invalid_path');
+  const f = cfg.fetch ?? fetch;
+  const base = `${cfg.url}/storage/v1/object`;
+  let removed = 0;
+  for (let round = 0; round < 1000; round++) {
+    const list = await f(`${base}/list/${encodeURIComponent(cfg.bucket)}`, {
+      method: 'POST',
+      headers: { ...auth(cfg), 'content-type': 'application/json' },
+      body: JSON.stringify({ prefix: orgId, limit: 100, offset: 0 }),
+      cache: 'no-store',
+    });
+    if (!list.ok) throw new Error(`storage_list_${list.status}`);
+    const names = ((await list.json()) as { name: string }[]).map((o) => o.name).filter((n) => /^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/i.test(n));
+    if (!names.length) return removed;
+    const del = await f(`${base}/${encodeURIComponent(cfg.bucket)}`, {
+      method: 'DELETE',
+      headers: { ...auth(cfg), 'content-type': 'application/json' },
+      body: JSON.stringify({ prefixes: names.map((n) => `${orgId}/${n}`) }),
+      cache: 'no-store',
+    });
+    if (!del.ok) throw new Error(`storage_delete_${del.status}`);
+    removed += names.length;
+  }
+  throw new Error('storage_delete_too_many');
+}

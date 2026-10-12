@@ -64,7 +64,7 @@ Brevo ne garantit pas l'absence de doublon. L'objectif est « au plus un envoi p
 | Accès | Isolation par compte (RLS), rôles propriétaire / membre, fichiers servis après contrôle | Liste des personnes ayant accès au compte |
 | Sous-traitants | Supabase (Francfort), Vercel (Europe), à venir : Anthropic (structuration), transcription, Brevo | Accords de sous-traitance et choix de régions ; ce qui est envoyé à chacun (texte seulement, jamais de photos à l'IA sans besoin) |
 | Conservation | Rien n'est purgé automatiquement | Durées : dossiers SAV, photos, audios (supprimables après transcription, règle 10) |
-| Suppression et export | Prévus par la règle 10, pas encore codés | Avant les testeurs payants |
+| Suppression et export | **Fait** (Réglages › Vos données) : export complet en archive .tar (tables + fichiers, propriétaire) ; suppression de l'entreprise (propriétaire, confirmation par le nom) ; suppression de son compte (les heures gardent le nom, les rapports restent justes) | Délai de réponse aux demandes, et qui les traite |
 | Journaux | Pas de contenu métier dans les journaux serveur | Durée de conservation des journaux Vercel et Supabase |
 
 Corrections techniques déjà faites : les remarques internes ne partent plus au client final, et le tarif négocié n'est plus visible du client (R02).

@@ -5,9 +5,9 @@ import { authMode } from '@/server/config';
 
 type Err = 'email' | 'rate_limited' | 'invalid' | 'expired' | 'unavailable' | 'disabled';
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erreur?: string; envoye?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erreur?: string; envoye?: string; compte?: string }> }) {
   const { t } = await getServerMessages();
-  const { erreur, envoye } = await searchParams;
+  const { erreur, envoye, compte } = await searchParams;
   const mode = authMode();
   const message = (e: string) =>
     e === 'disabled' ? t.auth.disabled : (t.auth.errors as Record<string, string>)[e as Exclude<Err, 'disabled'>] ?? t.common.error;
@@ -20,6 +20,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
         <h1>{mode === 'supabase' && envoye ? t.auth.sentTitle : t.auth.title}</h1>
         {erreur && <Flash kind="bad">{message(erreur)}</Flash>}
+        {compte === 'supprime' && <Flash>{t.auth.accountDeleted}</Flash>}
 
         {mode === 'supabase' && !envoye && (
           <form action={sendLoginLink} className="stack">
