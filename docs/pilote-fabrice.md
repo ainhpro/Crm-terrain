@@ -40,19 +40,27 @@ union all select logo_path from organizations where logo_path is not null;
 
 Les copies OneDrive / Google Drive des PDF sont une commodité. Ce ne sont pas des sauvegardes, et elles ne sont pas branchées en V1.
 
-## 3. Traitement d'envoi (D03), à coder avec Brevo
+## 3. Traitement d'envoi (D03) — fait, testé contre un faux Brevo
 
-Déjà en place : la validation et la mise en file se font en une transaction, avec une clé stable par opération (`report:<version>:<destinataire>`, `order:<besoin>:<déjà commandé>`). Une double validation ne crée ni deuxième version ni deuxième message.
+Ce qui existait déjà : la validation et la mise en file se font en une transaction, avec une clé stable par opération (`report:<version>:<destinataire>`, `order:<besoin>:<déjà commandé>`). Une double validation ne crée ni deuxième version ni deuxième message.
 
-À coder, dans un traitement serveur nommé (`withService`, qui vérifie l'organisation) :
-1. **Prendre un message** avec `for update skip locked`, passer son état à `sending` et poser une échéance de verrou. Deux traitements simultanés ne prennent jamais le même message.
-2. **Appeler Brevo** en transmettant la clé du message (en-tête de corrélation), puis enregistrer l'identifiant renvoyé par Brevo et l'état `sent`.
-3. **Résultat incertain** (coupure après l'appel, échéance du verrou dépassée sans réponse) : ne pas renvoyer automatiquement. Passer à `uncertain`, vérifier auprès de Brevo (événements ou webhook) grâce à la clé de corrélation, et sinon demander à l'utilisateur.
-4. **Échec certain** (refus explicite) : `failed`, avec le motif, et un nouvel essai possible sur décision.
+Traitement serveur nommé « envois » (`src/server/outbox.ts`, `src/server/brevo.ts`, migration `20261015000001_envois.sql`) :
+1. **Prise en charge** avec `for update skip locked` et un verrou daté : deux traitements simultanés ne prennent jamais le même message.
+2. **Envoi Brevo** au nom de l'entreprise (adresse d'expédition authentifiée, réponse vers l'email de l'entreprise), avec le PDF figé du bon public et la clé de l'opération en en-tête (`X-Mailin-custom`). L'identifiant renvoyé par Brevo est conservé.
+3. **Résultat classé** :
+   - Brevo a accepté → « Envoyé ».
+   - Refus certain (adresse, clé) → « Échec », avec le motif.
+   - Rien n'est parti (serveur injoignable, trop de demandes) → remis en file, 5 tentatives au plus.
+   - Coupure, délai dépassé, erreur Brevo, ou traitement interrompu → **« À vérifier »**, jamais renvoyé d'office : l'utilisateur choisit « Renvoyer » ou « Il est bien parti ».
+4. **Déclenchement** : juste après la validation ou la commande, sans faire attendre l'utilisateur. Un passage de rattrapage quotidien (`/api/envois`, protégé par `CRON_SECRET`) traite ce qui reste en file et les traitements interrompus.
+5. **Les utilisateurs** ne peuvent que mettre en file des messages neufs : ni faux « envoyé », ni changement d'état.
+6. **Commande sans adresse fournisseur** : elle est seulement notée, aucun email ne part.
 
-Tests à écrire : arrêt juste après l'acceptation par Brevo, double clic, deux traitements simultanés.
+Paramètres à fournir : `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` (adresse d'un domaine authentifié dans Brevo : SPF, DKIM), `BREVO_SENDER_NAME` (facultatif), `CRON_SECRET`. Sans eux, rien ne part et les messages restent « En file ».
 
-Brevo ne garantit pas l'absence de doublon. L'objectif est « au plus un envoi par opération, sauf cas incertain signalé ». Il ne faut pas promettre plus.
+Brevo ne garantit pas l'absence de doublon. Ce qui est garanti : au plus un envoi par opération, sauf cas « À vérifier », qui est signalé et laissé à la décision de l'utilisateur.
+
+Sur Vercel Hobby, les tâches planifiées sont limitées à une par jour (passage de rattrapage à 5 h UTC). Les envois normaux partent tout de suite, sans dépendre de ce passage.
 
 ## 4. Données personnelles du pilote (R01)
 

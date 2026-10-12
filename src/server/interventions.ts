@@ -138,8 +138,8 @@ export async function loadCase(q: Q, caseId: string) {
       `select id, subject, from_address, received_at, status from inbound_messages where attached_case_id = $1 or suggested_case_id = $1 order by received_at desc`,
       [caseId],
     ).then((r) => r.rows),
-    q<{ id: string; kind: string; recipient_label: string; recipient_email: string | null; status: 'queued' | 'sent' | 'failed'; created_at: string }>(
-      `select id, kind, recipient_label, recipient_email, status, created_at from outbound_messages where case_id = $1 order by created_at desc`,
+    q<{ id: string; kind: string; recipient_label: string; recipient_email: string | null; status: 'queued' | 'sending' | 'sent' | 'failed' | 'uncertain'; last_error: string | null; created_at: string }>(
+      `select id, kind, recipient_label, recipient_email, status, last_error, created_at from outbound_messages where case_id = $1 order by created_at desc`,
       [caseId],
     ).then((r) => r.rows),
     c.principal_id

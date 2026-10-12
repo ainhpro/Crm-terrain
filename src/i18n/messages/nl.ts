@@ -388,7 +388,16 @@ const nl: Messages = {
     missingSignature: 'Voeg de handtekening toe of geef de reden op waarom die ontbreekt.',
     noWorkerTime: 'Noteer aankomst en vertrek om een uurprijs te berekenen.',
   },
-  outbound: { queued: 'In wachtrij', sent: 'Verstuurd', failed: 'Mislukt' },
+  outbound: {
+    queued: 'In wachtrij',
+    sending: 'Wordt verstuurd',
+    sent: 'Verstuurd',
+    failed: 'Mislukt',
+    uncertain: 'Na te kijken',
+    uncertainHint: 'Verzending onzeker: kijk uw verzonden e-mails na of vraag het de ontvanger voordat u opnieuw verstuurt.',
+    resend: 'Opnieuw versturen',
+    markSent: 'Is wel vertrokken',
+  },
   pdf: {
     title: 'Interventierapport',
     case: 'Dossier',

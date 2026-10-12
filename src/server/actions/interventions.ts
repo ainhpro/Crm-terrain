@@ -9,8 +9,9 @@ import { extractTicketNumbers, normalizeTicket } from '@/modules/interventions/r
 import { parseRequestEmail, type ParsedRequest } from '@/modules/interventions/request';
 import { getMessages, isLocale } from '@/i18n';
 import { requireCtx } from '../context';
-import { pgCode, type Q, withUser } from '../db';
+import { pgCode, type Q, withService, withUser } from '../db';
 import { loadVisit } from '../interventions';
+import { scheduleOutbox } from '../outbox-run';
 import { renderReportPdf, SIGNATURE_NOT_REQUIRED } from '../pdf';
 import { saveBytes, saveFile } from '../storage';
 
@@ -269,7 +270,7 @@ export async function addPartNeed(formData: FormData) {
   back(returnTo);
 }
 
-/** Commande : identifiée, mise en file d'envoi (une seule fois par besoin et quantité). */
+/** Commande : notée, et mise en file d'envoi si une adresse est choisie (une seule fois par besoin et quantité). */
 export async function orderPart(formData: FormData) {
   const ctx = await requireCtx();
   const caseId = str(formData, 'caseId');
@@ -285,7 +286,8 @@ export async function orderPart(formData: FormData) {
     const qty = need.quantity - need.ordered;
     await q(`insert into part_orders (organization_id, need_id, supplier_label, quantity) values ($1, $2, $3, $4)`, [ctx.orgId, needId, supplier, qty]);
     const tickets = (await q<{ t: string | null }>(`select string_agg(number, ', ') as t from case_references where case_id = $1`, [caseId])).rows[0]?.t;
-    await q(
+    // Sans adresse choisie, la commande est seulement notée (passée par téléphone, au comptoir…) : aucun email.
+    if (supplierEmail) await q(
       `insert into outbound_messages (organization_id, case_id, kind, recipient_label, recipient_email, subject, body, idempotency_key)
        values ($1, $2, 'part_order', $3, $4, $5, $6, $7) on conflict (organization_id, idempotency_key) do nothing`,
       [
@@ -297,6 +299,7 @@ export async function orderPart(formData: FormData) {
     );
     await q(`update service_cases set status = 'waiting_parts' where id = $1 and status not in ('closed', 'cancelled')`, [caseId]);
   });
+  scheduleOutbox();
   back(`/interventions/${caseId}`, '?commande=1');
 }
 
@@ -477,6 +480,7 @@ export async function validateReport(formData: FormData) {
   } catch (e) {
     back(visitPath(formData), `?erreur=${pgCode(e) ?? 'x'}`);
   }
+  scheduleOutbox();
   back(visitPath(formData), '?valide=1');
 }
 
@@ -552,5 +556,36 @@ export async function attachEmail(formData: FormData) {
       .map((needId) => ({ needId, quantity: Number(str(formData, `qty:${needId}`)) || null }));
     if (items.length) await receiveNeeds(q, ctx.orgId, caseId, items, 'email');
   });
+  back(`/interventions/${caseId}`);
+}
+
+// ── Envois incertains ou en échec : l'utilisateur décide ─────────────
+
+/**
+ * Renvoyer, ou confirmer qu'un message est bien parti (relecture D03). Le message doit être visible
+ * par l'utilisateur (RLS) et appartenir à son entreprise ; l'état n'est changé que par le serveur.
+ */
+export async function decideMessage(formData: FormData) {
+  const ctx = await requireCtx();
+  const caseId = str(formData, 'caseId');
+  const id = str(formData, 'messageId');
+  const decision = str(formData, 'decision');
+  const msg = await withUser(ctx.userId, async (q) =>
+    (await q<{ organization_id: string; status: string }>(`select organization_id, status from outbound_messages where id = $1`, [id])).rows[0],
+  );
+  if (!msg || msg.organization_id !== ctx.orgId || !['failed', 'uncertain'].includes(msg.status)) back(`/interventions/${caseId}`);
+  if (decision === 'resend') {
+    await withService((q) =>
+      q(`update outbound_messages set status = 'queued', attempts = 0, last_error = null, locked_until = null, updated_at = now()
+         where id = $1 and organization_id = $2 and status in ('failed', 'uncertain')`, [id, ctx.orgId]),
+    );
+    scheduleOutbox();
+  } else if (decision === 'sent') {
+    await withService((q) =>
+      q(`update outbound_messages set status = 'sent', sent_at = now(), locked_until = null, updated_at = now(),
+                last_error = 'confirmé envoyé par ' || $3
+         where id = $1 and organization_id = $2 and status = 'uncertain'`, [id, ctx.orgId, ctx.email]),
+    );
+  }
   back(`/interventions/${caseId}`);
 }

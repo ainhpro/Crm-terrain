@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import { BackLink, Flash, formatDate } from '@/components';
 import {
-  addPartNeed, addTicket, cancelPartNeed, orderPart, receivePart, scheduleVisit, setCaseStatus,
+  addPartNeed, addTicket, cancelPartNeed, decideMessage, orderPart, receivePart, scheduleVisit, setCaseStatus,
 } from '@/server/actions/interventions';
+import { brevoConfig } from '@/server/config';
 import { requireCtx } from '@/server/context';
 import { withUser } from '@/server/db';
 import { loadCase } from '@/server/interventions';
@@ -11,6 +12,7 @@ const PART_TAG: Record<string, string> = { needed: 'warn', ordered: 'accent', pa
 
 export default async function CasePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cree?: string; erreur?: string; commande?: string }> }) {
   const ctx = await requireCtx();
+  const sendingConfigured = brevoConfig() !== null;
   const { t, locale } = ctx;
   const { id } = await params;
   const sp = await searchParams;
@@ -156,13 +158,24 @@ export default async function CasePage({ params, searchParams }: { params: Promi
             <div key={m.id}><span className="main"><span>✉ {m.subject}</span><small>{[m.from_address, formatDate(m.received_at, locale)].filter(Boolean).join(' · ')}</small></span></div>
           ))}
           {data.outbound.map((m) => (
-            <div key={m.id}>
+            <div key={m.id} style={{ flexWrap: 'wrap' }}>
               <span className="main"><span>→ {m.recipient_label}</span><small>{[m.recipient_email, formatDate(m.created_at, locale)].filter(Boolean).join(' · ')}</small></span>
-              <span className={`tag ${m.status === 'sent' ? 'ok' : m.status === 'failed' ? 'bad' : ''}`}>{t.outbound[m.status]}</span>
+              <span className={`tag ${m.status === 'sent' ? 'ok' : m.status === 'failed' ? 'bad' : m.status === 'uncertain' ? 'warn' : ''}`}>{t.outbound[m.status]}</span>
+              {(m.status === 'failed' || m.status === 'uncertain') && (
+                <div className="stack" style={{ width: '100%', gap: 6 }}>
+                  <small className="faint">{m.status === 'uncertain' ? t.outbound.uncertainHint : m.last_error}</small>
+                  <form action={decideMessage} className="row" style={{ gap: 6 }}>
+                    <input type="hidden" name="caseId" value={c.id} />
+                    <input type="hidden" name="messageId" value={m.id} />
+                    <button className="btn small" type="submit" name="decision" value="resend">{t.outbound.resend}</button>
+                    {m.status === 'uncertain' && <button className="btn small" type="submit" name="decision" value="sent">{t.outbound.markSent}</button>}
+                  </form>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        {data.outbound.some((m) => m.status === 'queued') && <p className="faint">{t.visit.sendNotConfigured}</p>}
+        {!sendingConfigured && data.outbound.some((m) => m.status === 'queued') && <p className="faint">{t.visit.sendNotConfigured}</p>}
       </section>
 
       <form action={setCaseStatus} className="row wrap">

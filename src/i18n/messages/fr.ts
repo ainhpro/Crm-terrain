@@ -386,7 +386,16 @@ const fr = {
     missingSignature: 'Ajoutez la signature ou indiquez le motif de son absence.',
     noWorkerTime: "Notez l'arrivée et le départ pour calculer un prix à l'heure.",
   },
-  outbound: { queued: 'En file', sent: 'Envoyé', failed: 'Échec' },
+  outbound: {
+    queued: 'En file',
+    sending: 'Envoi en cours',
+    sent: 'Envoyé',
+    failed: 'Échec',
+    uncertain: 'À vérifier',
+    uncertainHint: 'Envoi incertain : vérifiez dans vos emails envoyés ou auprès du destinataire avant de renvoyer.',
+    resend: 'Renvoyer',
+    markSent: 'Il est bien parti',
+  },
   pdf: {
     title: "Rapport d'intervention",
     case: 'Dossier',

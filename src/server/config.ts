@@ -44,6 +44,17 @@ export function storageMode(env: Env = process.env): StorageMode {
   return s?.serviceRoleKey ? 'supabase' : 'local';
 }
 
+/** Envoi réel des emails (Brevo) : clé et adresse d'expédition d'un domaine authentifié. */
+export function brevoConfig(env: Env = process.env): { apiKey: string; senderEmail: string; senderName: string; apiUrl: string } | null {
+  const apiKey = env.BREVO_API_KEY?.trim();
+  const senderEmail = env.BREVO_SENDER_EMAIL?.trim();
+  if (!apiKey || !senderEmail) return null;
+  // Adresse de l'API : Brevo, ou un service de test local (jamais un autre hôte).
+  const apiUrl = env.BREVO_API_URL?.trim() || 'https://api.brevo.com';
+  if (!/^https:\/\/api\.brevo\.com$|^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(apiUrl)) throw new Error('BREVO_API_URL invalide');
+  return { apiKey, senderEmail, senderName: env.BREVO_SENDER_NAME?.trim() || 'CRM terrain', apiUrl };
+}
+
 /** Adresse publique de l'application (liens des emails de connexion). */
 export function appUrl(env: Env = process.env): string | null {
   const u = env.APP_URL?.trim().replace(/\/+$/, '');
