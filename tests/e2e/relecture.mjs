@@ -100,6 +100,45 @@ await ctx.setOffline(false);
 await page.goto(`${BASE}/reglages#etapes`); await page.waitForLoadState('networkidle');
 ok('D01 étapes verrouillées signalées', (await page.getByText(/affaire\(s\) en cours suivent ce parcours/).count()) > 0);
 
+// M01 : seules les actions cochées sont closes ; une relance rattachée à l'étape reste ouverte.
+{
+  const deal = sql(`select d.id from deals d join clients c on c.id = d.client_id where c.name = 'FACQ Geel' and d.name = 'MAJ showroom 2026'`);
+  const step = sql(`select s.id from pipeline_steps s join deals d on d.pipeline_id = s.pipeline_id where d.id = '${deal}' and s.code = 'commande'`);
+  sql(`insert into actions (organization_id, client_id, deal_id, step_id, kind, status, due_date, note)
+       select organization_id, client_id, id, '${step}', 'step', x.status, '2026-10-20', x.note from deals,
+       (values ('todo', 'Passer la commande M01'), ('follow_up', 'Relancer vendredi M01')) as x(status, note) where id = '${deal}'`);
+  await page.goto(`${BASE}/clients`); await page.getByRole('link', { name: /FACQ Geel/ }).first().click(); await page.waitForLoadState('networkidle');
+  await page.goto(`${page.url()}/compte-rendu`);
+  await page.fill('#text', 'Le responsable a confirmé la commande.');
+  await page.getByRole('button', { name: 'Préparer la mise à jour' }).click();
+  await page.getByText('Ce qui sera mis à jour').waitFor();
+  const todo = page.locator('label', { hasText: 'Passer la commande M01' }).locator('input');
+  const follow = page.locator('label', { hasText: 'Relancer vendredi M01' }).locator('input');
+  ok('M01 clôtures proposées : l’action de l’étape cochée, la relance non', (await todo.isChecked()) && !(await follow.isChecked()));
+  await page.getByRole('button', { name: 'Valider', exact: true }).click();
+  await page.waitForURL(/ok=1/);
+  const st = sql(`select string_agg(status, ',' order by note) from actions where note like '%M01'`);
+  ok('M01 après validation : action close, relance toujours ouverte', st === 'done,follow_up', st);
+}
+
+// U01 : technicien sans l'option « signature » — rapport validé sans signature, motif fidèle.
+{
+  sql(`update member_settings set options = options || '{"signature": false}' where user_id = (select id from auth.users where email = 'tom@demo.local')`);
+  const c2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const p2 = await c2.newPage(); p2.setDefaultTimeout(30000);
+  p2.on('pageerror', (e) => errors.push(String(e)));
+  await p2.goto(`${BASE}/connexion`); await p2.fill('#email', 'tom@demo.local'); await p2.click('button[type=submit]'); await p2.waitForURL(`${BASE}/`);
+  const [caseId, visitId] = sql(`select sc.id || '|' || v.id from service_visits v join service_cases sc on sc.id = v.case_id join clients c on c.id = sc.client_id where c.name = 'M. Exemple' limit 1`).split('|');
+  await p2.goto(`${BASE}/interventions/${caseId}/passages/${visitId}`); await p2.waitForLoadState('networkidle');
+  ok('U01 sans option signature : pas de zone de signature', (await p2.locator('canvas.sig').count()) === 0);
+  await p2.fill('textarea[name=done]', 'Mesures prises.');
+  await p2.getByRole('button', { name: 'Valider et envoyer' }).click(); await p2.waitForURL(/valide=1/);
+  const rid = sql(`select id from report_versions where visit_id = '${visitId}' and status = 'validated'`);
+  const text = pdfText(Buffer.from(await (await p2.request.get(`${BASE}/rapports/${rid}/pdf`)).body()), 'u01');
+  ok('U01 rapport validé, PDF : « Signature non requise selon les réglages »', /Signature non requise selon les r/.test(text) && !/motif/.test(text));
+  await c2.close();
+}
+
 console.log(results.join('\n'));
 console.log('Erreurs navigateur :', errors.length ? errors : 'aucune');
 await browser.close();

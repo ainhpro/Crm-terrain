@@ -420,8 +420,9 @@ export async function validateReport(formData: FormData) {
          where id = $1`,
         [
           id, ctx.userId, price.presenceMinutes, price.billableMinutes, price.amountExclCents, price.amountInclCents, sigPath,
-          // Option « signature » désactivée : motif fidèle, sans inventer un refus du client (relecture U01).
-          sigPath ? null : noSigReason ?? SIGNATURE_NOT_REQUIRED,
+          // Option « signature » désactivée : motif fidèle, imposé par le serveur, sans inventer un refus
+          // du client (relecture U01) ; sinon, le motif saisi par le technicien.
+          sigPath ? null : !ctx.options.signature ? SIGNATURE_NOT_REQUIRED : noSigReason,
         ],
       );
       // PDF figés : une modification ultérieure (heures, tarif, logo, pièces) ne change plus ce rapport (D02).

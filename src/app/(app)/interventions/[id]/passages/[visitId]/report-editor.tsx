@@ -119,7 +119,6 @@ export function ReportEditor({
           {!signature && <label className="field">{t.visit.noSignature}<input type="text" name="noSignatureReason" value={reason} onChange={(e) => setReason(e.target.value)} /></label>}
         </div>
       )}
-      {!options.signature && <input type="hidden" name="noSignatureReason" value="—" />}
 
       <p className="faint">{t.visit.recap}</p>
       <button className="btn block" type="submit" formAction={saveReportDraft}>{t.visit.saveDraft}</button>
