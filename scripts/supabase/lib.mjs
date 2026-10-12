@@ -22,6 +22,8 @@ export function projectRef() {
 
 /** Connexion à la base Supabase (SUPABASE_DB_URL, rôle postgres), TLS vérifié si DATABASE_SSL_CA est fourni. */
 export async function connectDb() {
+  // Adresse dédiée aux scripts, sinon celle de l'application (un seul fichier .env.local sur un PC).
+  if (!process.env.SUPABASE_DB_URL?.trim() && process.env.DATABASE_URL?.trim()) process.env.SUPABASE_DB_URL = process.env.DATABASE_URL;
   const raw = need('SUPABASE_DB_URL');
   const url = new URL(raw);
   if (!/(\.supabase\.(co|com)|pooler\.supabase\.com)$/.test(url.hostname) && process.env.ALLOW_NON_SUPABASE_DB !== '1') {

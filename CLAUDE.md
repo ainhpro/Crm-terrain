@@ -5,6 +5,7 @@ Promesse : « Tu sors de chez le client, tu parles une minute, et tout est à jo
 
 **Produit neutre** : aucun nom de client, de marque ou de secteur dans le code ni dans les fichiers de langue. Un nouveau compte reçoit le modèle neutre (`src/modules/crm/templates/standard.ts`, `src/modules/interventions/standard.ts`) et l'adapte dans Réglages. INDA (Fabrice) n'est qu'un modèle et un jeu de démonstration.
 
+- **Sur un PC (Windows ou Mac)** : installation, configuration Supabase et Anthropic, lancement et test comme commercial dans [`docs/demarrage-pc.md`](docs/demarrage-pc.md) ; `npm run config:check` dit ce qui manque. Ne jamais lire ni afficher `.env.local`.
 - Cahier des charges complet : [`docs/cahier-des-charges.md`](docs/cahier-des-charges.md). Le lire avant toute nouvelle fonctionnalité.
 - Prototype de référence et analyse de sa logique : [`docs/prototype/`](docs/prototype/). On reprend sa logique métier, pas sa présentation.
 - Démo des parcours (référence visuelle) : https://claude.ai/artifact/DcLwrC7uZNzpPL84Rpw4WF — sobre, professionnelle, utilisable d'une main. Ancienne maquette en tableau : https://claude.ai/artifact/3Toq3BYmhz39pY6EpjJz6U
@@ -68,6 +69,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | `npm run test:db` | Tests d'isolation sur un Postgres jetable (`initdb` local, ou `TEST_DATABASE_URL` : base au nom unique créée puis supprimée, serveur local exigé ; `DATABASE_URL` n'est jamais utilisé) |
 | `npm run typecheck` / `npm run build` | Vérification TypeScript / build de production |
 | `npm run test:e2e` | Parcours complet dans un navigateur (app sur le port 3200) |
+| `npm run config:check` / `config:secret` | Vérifie la configuration du poste (`.env.local`) sans rien afficher de secret / génère un `SESSION_SECRET` |
 | `npm run supabase:migrate` / `supabase:setup` / `supabase:check` | Projet Supabase réel : migrations, configuration Auth et Storage, vérifications (sans `-- --apply`, rien n'est écrit) ; voir `docs/supabase.md` |
 | `npm run test:e2e:connexion` | Connexion Supabase (lien + code) dans un navigateur |
 | `npm run test:e2e:ia` | Compte rendu et lecture d'email par l'IA contre un faux service (voir l'en-tête du script) |

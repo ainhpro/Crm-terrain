@@ -18,12 +18,14 @@
     "test:e2e": "node tests/e2e/parcours.mjs",
     "test:e2e:relecture": "node tests/e2e/relecture.mjs",
     "test:e2e:connexion": "node tests/e2e/connexion-supabase.mjs",
-    "supabase:migrate": "node --env-file-if-exists=.env.supabase scripts/supabase/migrate.mjs",
-    "supabase:setup": "node --env-file-if-exists=.env.supabase scripts/supabase/setup.mjs",
-    "supabase:check": "node --env-file-if-exists=.env.supabase scripts/supabase/check.mjs",
+    "supabase:migrate": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.supabase scripts/supabase/migrate.mjs",
+    "supabase:setup": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.supabase scripts/supabase/setup.mjs",
+    "supabase:check": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.supabase scripts/supabase/check.mjs",
     "test:e2e:rgpd": "node tests/e2e/rgpd.mjs",
     "test:e2e:envois": "node tests/e2e/envois.mjs",
-    "test:e2e:ia": "node tests/e2e/ia.mjs"
+    "test:e2e:ia": "node tests/e2e/ia.mjs",
+    "config:check": "node --env-file-if-exists=.env.local scripts/verifier-config.mjs",
+    "config:secret": "node -e \"console.log(require('node:crypto').randomBytes(48).toString('hex'))\""
   },
   "devDependencies": {
     "@types/node": "22.20.5",
