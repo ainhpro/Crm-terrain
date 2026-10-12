@@ -51,6 +51,7 @@ export const INDA_PIPELINES: PipelineTemplate[] = [
     groupCode: 'FACQ',
     label: { fr: 'Tarifs & formations', nl: 'Tarieven & opleidingen' },
     steps: [
+      { code: 'tarif', short: { fr: 'TARIF', nl: 'PRIJS' }, label: { fr: 'Tarifs livrés', nl: 'Prijslijsten bezorgd' } },
       { code: 'formation_meubles', short: { fr: 'FORM.M', nl: 'OPL.M' }, label: { fr: 'Formation meubles', nl: 'Opleiding meubelen' } },
       { code: 'formation_parois', short: { fr: 'FORM.P', nl: 'OPL.D' }, label: { fr: 'Formation parois', nl: 'Opleiding douchewanden' } },
     ],

@@ -45,6 +45,7 @@ Implémenté dans `src/modules/crm/pipeline/engine.ts` et `src/modules/crm/actio
 | Seule la première action trouvée compte pour une étape | L'action la plus avancée de l'étape l'emporte (Terminé > RDV fixé > ouverte) | Une ancienne action « À faire » masquait une action « Terminé » plus récente |
 | La déduction ne remplit que les étapes vides ; une étape précédente « À faire » restait ouverte et en retard | Toutes les étapes précédentes non terminées deviennent « déduites » | Le cahier des charges : « une étape avancée terminée valide automatiquement les étapes précédentes » |
 | « Livraison Tarifs SAMO » n'était rattachée à aucune étape | Rattachée à l'étape Tarif | Le libellé existait mais tombait en « non classé » |
+| « Livraison Tarifs » (FACQ) n'était rattachée à aucune étape | Première étape « Tarifs livrés » du parcours « Tarifs & formations » | Vu sur une vraie sauvegarde : 7 livraisons de tarifs tombaient en « non classé » |
 | Dates comparées avec `new Date('2026-10-10')` (minuit UTC) | Dates ISO comparées comme du texte, « aujourd'hui » passé en paramètre | Décalage d'un jour possible selon le fuseau ; logique testable |
 | Pipelines, groupes, showrooms et types codés en dur | Réglages par compte (tables `pipelines`, `pipeline_steps`, `client_groups`) | Multi-utilisateurs, pipelines proposés par l'IA |
 

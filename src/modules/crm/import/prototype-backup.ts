@@ -54,6 +54,8 @@ const RULES: Record<string, Rule[]> = {
     { pipeline: 'FACQ_MAJ', step: 'offre', patterns: ['Offre Showroom', 'MAJ — Offre', 'MAU — Offre'] },
     { pipeline: 'FACQ_MAJ', step: 'commande', patterns: ['Commande'] },
     { pipeline: 'FACQ_MAJ', step: 'placement', patterns: ['Placement'] },
+    // Absente du prototype : « Livraison Tarifs » tombait en « non classé » (vu sur une vraie sauvegarde).
+    { pipeline: 'FACQ_TAR', step: 'tarif', patterns: ['Livraison Tarifs'] },
     { pipeline: 'FACQ_TAR', step: 'formation_meubles', patterns: ['Formation Meubles'] },
     { pipeline: 'FACQ_TAR', step: 'formation_parois', patterns: ['Formation Parois'] },
   ],

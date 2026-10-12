@@ -10,6 +10,7 @@ describe('matchLegacyType', () => {
     ['FACQ', 'Offre Showroom envoyée', 'FACQ_MAJ', 'offre'],
     ['FACQ', 'MAJ — Commande', 'FACQ_MAJ', 'commande'],
     ['FACQ', 'Placement / Installation', 'FACQ_MAJ', 'placement'],
+    ['FACQ', 'Livraison Tarifs', 'FACQ_TAR', 'tarif'],
     ['FACQ', 'Formation Meubles', 'FACQ_TAR', 'formation_meubles'],
     ['FACQ', 'Formation Parois', 'FACQ_TAR', 'formation_parois'],
     ['STG', 'RDV Responsable showroom', 'STG_PLACE', 'rdv'],
@@ -26,7 +27,6 @@ describe('matchLegacyType', () => {
 
   it('laisse non classés les suivis et les types inconnus', () => {
     expect(matchLegacyType('FACQ', 'Suivi / Note')).toBeNull();
-    expect(matchLegacyType('FACQ', 'Livraison Tarifs')).toBeNull();
     expect(matchLegacyType('INCONNU', 'Commande passée')).toBeNull();
   });
 });
