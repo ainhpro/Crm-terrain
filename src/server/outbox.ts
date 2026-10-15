@@ -111,7 +111,7 @@ async function compose(m: Claimed, sender: { email: string; name?: string }): Pr
   const attachments = pdf ? [{ name: `rapport-v${org.version ?? 1}${m.audience === 'client' ? '-client' : ''}.pdf`, content: pdf }] : [];
   return {
     to: { email: m.recipient_email!, name: m.recipient_label },
-    from: { email: sender.email, name: org.company_name || org.name || sender.name || 'CRM terrain' },
+    from: { email: sender.email, name: org.company_name || org.name || sender.name || 'Sitôt' },
     replyTo: org.email ? { email: org.email, name: org.company_name || org.name } : null,
     subject: m.subject ?? '',
     text: m.body ?? '',

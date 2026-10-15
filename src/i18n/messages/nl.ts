@@ -3,9 +3,8 @@ import type { Messages } from './fr';
 // Vertaling door de ontwikkelaar : te laten nalezen door een Nederlandstalige.
 const nl: Messages = {
   app: {
-    name: 'CRM terrain',
+    name: 'Sitôt',
     tagline: 'Na je klantbezoek spreek je een minuut in en is alles bijgewerkt.',
-    nameTechnician: 'Interventies op locatie',
     taglineTechnician: 'Na je interventie spreek je een minuut in en is het rapport klaar.',
   },
   common: {

@@ -1,4 +1,6 @@
-# CRM terrain
+# Sitôt — CRM terrain
+
+*Sitôt dit, sitôt fait.* · *Zo gezegd, zo gedaan.*
 
 Application mobile pour commerciaux terrain et techniciens SAV indépendants : clients, affaires, comptes rendus dictés, relances, interventions avec photos, heures, pièces à commander, rapport signé en PDF et envoi au donneur d'ordre.
 

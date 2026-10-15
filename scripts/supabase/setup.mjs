@@ -52,7 +52,7 @@ if (smtp) {
     smtp_user: process.env.SMTP_USER,
     smtp_pass: process.env.SMTP_PASS,
     smtp_admin_email: process.env.SMTP_SENDER_EMAIL,
-    smtp_sender_name: process.env.SMTP_SENDER_NAME || 'CRM terrain',
+    smtp_sender_name: process.env.SMTP_SENDER_NAME || 'Sitôt',
   });
 }
 const EMAILS_PER_HOUR = 30; // pour tout le projet ; sans SMTP, Supabase le bloque à 2 par heure

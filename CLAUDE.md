@@ -2,6 +2,7 @@
 
 Application modulaire, mobile-first et vocal-first, pour commerciaux terrain et techniciens SAV indépendants (1 à 3 personnes) en Belgique (FR/NL), Luxembourg, puis France. Une seule application, deux profils : commercial, technicien, ou les deux. Choisi une seule fois à l'inscription, modifiable ensuite seulement dans Réglages › Profil.
 Promesse : « Tu sors de chez le client, tu parles une minute, et tout est à jour. »
+Nom du produit : **Sitôt** (« Sitôt dit, sitôt fait » ; NL « Zo gezegd, zo gedaan » ; IT « Detto, fatto »), le même dans toutes les langues, dans `app.name` des fichiers de langue. Domaine visé : `sitot.be` (à réserver), le code interne garde le nom « CRM terrain ».
 
 **Produit neutre** : aucun nom de client, de marque ou de secteur dans le code ni dans les fichiers de langue. Un nouveau compte reçoit le modèle neutre (`src/modules/crm/templates/standard.ts`, `src/modules/interventions/standard.ts`) et l'adapte dans Réglages. INDA (Fabrice) n'est qu'un modèle et un jeu de démonstration.
 
@@ -119,4 +120,4 @@ docs/                    cahier des charges, prototype, analyses
 
 ## Questions ouvertes
 
-Nom du produit et domaine · outils de facturation à connecter en premier · SMS ou email pour prévenir le client · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».
+Réservation du domaine sitot.be et dépôt de la marque · outils de facturation à connecter en premier · SMS ou email pour prévenir le client · structure juridique (AINHPRO SRL ou nouvelle société) · trois premiers testeurs · fournisseur de transcription · contenu exact du module « faisabilité d'offres ».

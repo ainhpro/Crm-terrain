@@ -17,13 +17,11 @@ export async function deploymentFormule(): Promise<Formule> {
     cached = { value: isFormule(f) ? f : 'complete', at: Date.now() };
     return cached.value;
   } catch {
-    return 'complete'; // base injoignable ou migration pas encore appliquée : nom par défaut
+    return 'complete'; // base injoignable ou migration pas encore appliquée : accroche par défaut
   }
 }
 
-/** Nom et accroche du produit selon la formule. */
+/** Nom du produit et accroche de la formule (commerciaux ou techniciens). */
 export async function brand(t: Messages): Promise<{ name: string; tagline: string }> {
-  return (await deploymentFormule()) === 'technicien'
-    ? { name: t.app.nameTechnician, tagline: t.app.taglineTechnician }
-    : { name: t.app.name, tagline: t.app.tagline };
+  return { name: t.app.name, tagline: (await deploymentFormule()) === 'technicien' ? t.app.taglineTechnician : t.app.tagline };
 }

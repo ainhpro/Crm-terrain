@@ -1,10 +1,10 @@
 // Dictionnaire de référence : toute clé ajoutée ici doit l'être aussi en nl.ts (vérifié par TypeScript).
 const fr = {
   app: {
-    name: 'CRM terrain',
+    // Nom du produit, le même dans toutes les langues (« Sitôt dit, sitôt fait »).
+    name: 'Sitôt',
     tagline: 'Tu sors de chez le client, tu parles une minute, et tout est à jour.',
-    // Formule technicien (FORMULE=technicien) : nom provisoire, en attendant le nom du produit.
-    nameTechnician: 'Interventions terrain',
+    // Formule technicien (FORMULE=technicien).
     taglineTechnician: 'Tu termines l’intervention, tu parles une minute, et le rapport est prêt.',
   },
   common: {
