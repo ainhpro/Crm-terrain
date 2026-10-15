@@ -12,6 +12,9 @@ import { withUser } from '@/server/db';
 import { effectiveProfile, isProfile, profilesFor } from '@/modules/crm/formule';
 import { readOptions } from '@/modules/interventions/options';
 import { loadOrgIdentity } from '@/server/interventions';
+import { inboundAddress } from '@/modules/interventions/inbound';
+import { inboundConfig } from '@/server/config';
+import { AddressCard } from '../interventions/emails/address-card';
 
 type Member = { user_id: string; name: string; role: 'owner' | 'member'; profile: string | null; type_ids: string[] | null; options: unknown };
 
@@ -22,6 +25,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const host = (await headers()).get('host') ?? 'localhost:3000';
   const data = await withUser(ctx.userId, async (q) => ({
     org: await loadOrgIdentity(q, ctx.orgId),
+    inboundToken: (await q<{ inbound_token: string }>(`select inbound_token from organizations where id = $1`, [ctx.orgId])).rows[0]?.inbound_token,
     pipelines: isCommercial(ctx) ? await loadPipelines(q) : [],
     openDeals: new Map(
       (await q<{ pipeline_id: string; n: number }>(`select pipeline_id, count(*)::int as n from deals where status = 'open' group by pipeline_id`)).rows.map((r) => [r.pipeline_id, r.n]),
@@ -44,6 +48,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   }));
   const isOwner = ctx.role === 'owner';
   const profiles = profilesFor(ctx.modules);
+  const reception = inboundConfig();
+  const inbound = reception && data.inboundToken ? inboundAddress(data.inboundToken, reception.domain) : null;
   const me = data.members.find((m) => m.user_id === ctx.userId);
   const editable = isOwner ? data.members : me ? [me] : [];
   const errorText = sp.erreur === 'vat' ? t.settings.vatInvalid : sp.erreur === 'owner' ? t.settings.ownerOnly : sp.erreur === 'inUse' ? t.settings.stepsInUse : sp.erreur === 'confirm' ? t.settings.confirmError : sp.erreur === 'lastOwner' ? t.settings.lastOwner : t.common.error;
@@ -187,6 +193,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {isTechnician(ctx) && (
         <>
+          {inbound && (
+            <section className="stack" id="reception">
+              <h2>{t.inbox.title}</h2>
+              <AddressCard address={inbound} labels={{ title: t.inbox.address, hint: t.inbox.addressHint, copy: t.inbox.copy, copied: t.inbox.copied }} />
+            </section>
+          )}
           <section className="stack">
             <h2>{t.settings.types}</h2>
             <div className="card list">

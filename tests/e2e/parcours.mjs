@@ -128,6 +128,9 @@ await step('dossier : commande puis email de réception', async () => {
   await page.getByRole('button', { name: 'Commander' }).click();
   await page.waitForURL(/commande=1/);
   await page.goto(`${BASE}/interventions/emails`);
+  // Formulaire « coller un email » replié quand la réception par transfert est configurée.
+  const paste = page.locator('details:has(input[name=subject])');
+  if ((await paste.getAttribute('open')) === null) await paste.locator('summary').click();
   await page.fill('input[name=subject]', `Ticket ${TICKET} — pièce disponible`);
   await page.getByRole('button', { name: 'Intégrer' }).click();
   await page.getByText('Dossier proposé').first().waitFor();

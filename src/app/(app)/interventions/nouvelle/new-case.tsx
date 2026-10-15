@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { DraftKeeper } from '@/app/drafts';
 import type { Messages } from '@/i18n/messages/fr';
 import { createCase, readRequest } from '@/server/actions/interventions';
@@ -9,11 +9,17 @@ type Opt = { id: string; name: string };
 
 /** Nouvelle intervention : coller l'email → champs proposés avec leur source → vérification → création. */
 export function NewCaseFlow({
-  t, types, principals, clients, showWarranty, defaultLanguage,
+  t, types, principals, clients, showWarranty, defaultLanguage, fromMessage,
 }: {
   t: Messages; types: Opt[]; principals: (Opt & { default_type_id: string | null })[]; clients: Opt[]; showWarranty: boolean; defaultLanguage: string;
+  /** Email reçu d'où part la demande : lu tout de suite, puis rattaché au dossier créé. */
+  fromMessage?: { id: string; subject: string; body: string };
 }) {
   const [draft, read, pending] = useActionState(readRequest, null);
+  const emailForm = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (fromMessage) emailForm.current?.requestSubmit();
+  }, [fromMessage]);
   const [mode, setMode] = useState<'email' | 'manual'>('email');
   const [principalId, setPrincipalId] = useState('');
   const [existing, setExisting] = useState(false);
@@ -35,10 +41,11 @@ export function NewCaseFlow({
       </div>
 
       {mode === 'email' && (
-        <form action={read} className="stack" id="demande-email">
-          <DraftKeeper formId="demande-email" storageKey="demande-email" restoredLabel={t.common.draftRestored} />
-          <label className="field">{t.interventions.emailSubject}<input type="text" name="subject" id="subject" /></label>
-          <label className="field">{t.interventions.emailBody}<textarea data-draft name="body" id="body" rows={7} /></label>
+        <form action={read} className="stack" id="demande-email" ref={emailForm}>
+          {/* Un brouillon gardé sur l'appareil ne doit pas remplacer l'email reçu. */}
+          {!fromMessage && <DraftKeeper formId="demande-email" storageKey="demande-email" restoredLabel={t.common.draftRestored} />}
+          <label className="field">{t.interventions.emailSubject}<input type="text" name="subject" id="subject" defaultValue={fromMessage?.subject} /></label>
+          <label className="field">{t.interventions.emailBody}<textarea data-draft name="body" id="body" rows={7} defaultValue={fromMessage?.body} /></label>
           <button className="btn primary" type="submit" disabled={pending}>{t.interventions.analyze}</button>
         </form>
       )}
@@ -56,6 +63,7 @@ export function NewCaseFlow({
           {draft && <p className="faint">{draft.engine === 'ai' ? t.interventions.engineAi : t.interventions.engineRules}</p>}
           <input type="hidden" name="subject" value={draft?.subject ?? ''} />
           <input type="hidden" name="body" value={draft?.body ?? ''} />
+          {fromMessage && <input type="hidden" name="messageId" value={fromMessage.id} />}
           <label className="field">{t.interventions.principal}
             <select name="principalId" id="principalId" value={principalId} onChange={(e) => setPrincipalId(e.target.value)}>
               <option value="">{t.interventions.noPrincipal}</option>

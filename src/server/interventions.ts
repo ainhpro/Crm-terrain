@@ -45,7 +45,57 @@ export async function loadTechDay(q: Q, ctx: Pick<Ctx, 'today' | 'timezone' | 't
   const waitingParts = Number(
     (await q<{ n: string }>(`select count(*) as n from service_cases where status = 'waiting_parts'`)).rows[0]?.n ?? 0,
   );
-  return { visits, waitingParts };
+  const pendingInbound = await countPendingInbound(q);
+  return { visits, waitingParts, pendingInbound };
+}
+
+// ── Emails reçus (transférés ou collés) ─────────────────────────────
+
+export interface InboundListItem {
+  id: string;
+  channel: 'paste' | 'forward';
+  from_address: string | null;
+  subject: string | null;
+  received_at: string;
+  suggested_label: string | null;
+}
+
+export async function countPendingInbound(q: Q): Promise<number> {
+  return Number((await q<{ n: string }>(`select count(*) as n from inbound_messages where status = 'pending'`)).rows[0]?.n ?? 0);
+}
+
+/** Emails à traiter, les plus récents d'abord (la RLS limite au compte de l'utilisateur). */
+export async function loadPendingInbound(q: Q): Promise<InboundListItem[]> {
+  return (
+    await q<InboundListItem>(
+      `select m.id, m.channel, m.from_address, m.subject, m.received_at,
+              (select c.name from service_cases sc join clients c on c.id = sc.client_id where sc.id = m.suggested_case_id) as suggested_label
+       from inbound_messages m where m.status = 'pending' order by m.received_at desc limit 100`,
+    )
+  ).rows;
+}
+
+export interface CaseMatch {
+  id: string;
+  label: string;
+  needs: { id: string; label: string; remaining: number }[];
+}
+
+/** Dossiers portant l'un de ces numéros de ticket, avec leurs pièces encore attendues (rattachement proposé). */
+export async function matchCasesByTickets(q: Q, tickets: string[]): Promise<CaseMatch[]> {
+  if (!tickets.length) return [];
+  return (
+    await q<CaseMatch>(
+      `select sc.id, min(c.name || ' · ' || r.number) as label,
+              coalesce((select json_agg(json_build_object('id', n.id, 'label', n.designation || coalesce(' · ' || n.reference, ''),
+                                'remaining', n.quantity - coalesce((select sum(quantity) from part_receipts pr where pr.need_id = n.id), 0)) order by n.created_at)
+                        from part_needs n where n.case_id = sc.id and n.cancelled_at is null
+                          and coalesce((select sum(quantity) from part_receipts pr where pr.need_id = n.id), 0) < n.quantity), '[]') as needs
+       from case_references r join service_cases sc on sc.id = r.case_id
+       join clients c on c.id = sc.client_id where lower(trim(r.number)) = any($1::text[]) group by sc.id`,
+      [tickets],
+    )
+  ).rows;
 }
 
 export interface CaseListItem {

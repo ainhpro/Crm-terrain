@@ -1,7 +1,7 @@
 import { Flash, formatDate, Icon } from '@/components';
 import { requireCtx } from '@/server/context';
 import { withUser } from '@/server/db';
-import { searchCases } from '@/server/interventions';
+import { countPendingInbound, searchCases } from '@/server/interventions';
 
 const TAG: Record<string, string> = { waiting_parts: 'warn', return_to_plan: 'accent', closed: 'ok', cancelled: '', in_progress: 'accent', planned: '', new: '' };
 
@@ -9,13 +9,13 @@ export default async function InterventionsPage({ searchParams }: { searchParams
   const ctx = await requireCtx();
   const { t, locale } = ctx;
   const sp = await searchParams;
-  const cases = await withUser(ctx.userId, (q) => searchCases(q, sp.q ?? '', sp.etat ?? null));
+  const [cases, pendingInbound] = await withUser(ctx.userId, async (q) => [await searchCases(q, sp.q ?? '', sp.etat ?? null), await countPendingInbound(q)] as const);
   return (
     <main className="page">
       <div className="page-head">
         <h1>{t.interventions.title}</h1>
         <div className="row">
-          <a className="btn small" href="/interventions/emails"><Icon name="mail" size={16} />{t.interventions.inbound}</a>
+          <a className="btn small" href="/interventions/emails"><Icon name="mail" size={16} />{t.interventions.inbound}{pendingInbound > 0 && <span className="tag accent">{pendingInbound}</span>}</a>
           <a className="icon-btn" href="/interventions/nouvelle" aria-label={t.interventions.new} style={{ background: 'var(--accent)', color: '#fff' }}>
             <Icon name="plus" size={20} />
           </a>

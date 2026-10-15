@@ -60,3 +60,15 @@ export function appUrl(env: Env = process.env): string | null {
   const u = env.APP_URL?.trim().replace(/\/+$/, '');
   return u || null;
 }
+
+/**
+ * Réception des emails par transfert (Brevo) : domaine de réception (enregistrements MX vers Brevo) et
+ * clé secrète de l'adresse d'appel (?cle=…), 24 caractères au moins. Sans les deux, rien n'est reçu.
+ */
+export function inboundConfig(env: Env = process.env): { domain: string; secret: string } | null {
+  const domain = env.INBOUND_DOMAIN?.trim().toLowerCase();
+  const secret = env.INBOUND_SECRET?.trim();
+  if (!domain || !secret || secret.length < 24) return null;
+  if (!/^(?=.{4,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(domain)) return null;
+  return { domain, secret };
+}

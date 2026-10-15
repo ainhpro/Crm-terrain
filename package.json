@@ -24,7 +24,9 @@
     "test:e2e:rgpd": "node tests/e2e/rgpd.mjs",
     "test:e2e:envois": "node tests/e2e/envois.mjs",
     "test:e2e:ia": "node tests/e2e/ia.mjs",
+    "test:e2e:reception": "node tests/e2e/reception.mjs",
     "config:check": "node --env-file-if-exists=.env.local scripts/verifier-config.mjs",
+    "brevo:reception": "node --env-file-if-exists=.env.local scripts/brevo-reception.mjs",
     "config:secret": "node -e \"console.log(require('node:crypto').randomBytes(48).toString('hex'))\""
   },
   "devDependencies": {

@@ -50,6 +50,17 @@
 - **SMTP Brevo** : obligatoire dès le premier essai sur l'offre gratuite, car Supabase y refuse de modifier les emails de connexion sans SMTP externe (l'email par défaut n'a ni le code ni le lien `/auth/confirmer`). Le service intégré n'écrirait de toute façon qu'aux membres de l'équipe du projet, avec une limite très basse. Il faut fournir `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_USER`, `SMTP_PASS` et `SMTP_SENDER_EMAIL` (adresse d'un domaine authentifié), puis relancer `supabase:setup`.
 - **Vercel** : créer le projet relié au dépôt, avec les variables de production listées dans `.env.example` (`DATABASE_URL` = pooler en **mode transaction**, port 6543 ; `DB_POOL_MAX=3`).
 
+### Réception des emails transférés (après la mise en ligne)
+
+Chaque compte a une adresse de réception propre, `<jeton>@<domaine de réception>`, affichée dans Interventions › Emails reçus et dans Réglages. Le technicien y transfère ses emails de demande, à la main ou par une règle automatique de sa messagerie ; ils arrivent dans « Demandes reçues à traiter », et rien n'est créé sans sa validation. Le compte est déterminé par le jeton de l'adresse, jamais par le ticket ou l'expéditeur.
+
+1. Choisir un sous-domaine de réception, distinct du domaine d'envoi, par exemple `reception.<domaine>`, et le vérifier dans Brevo.
+2. Chez le fournisseur du domaine, ajouter deux enregistrements MX pour ce sous-domaine : priorité 10 vers `inbound1.sendinblue.com`, priorité 20 vers `inbound2.sendinblue.com`.
+3. Variables, dans Vercel et dans `.env.local` : `INBOUND_DOMAIN=reception.<domaine>` et `INBOUND_SECRET=` une valeur de `npm run config:secret`.
+4. `npm run config:check` contrôle les MX ; puis `npm run brevo:reception -- --apply` déclare la réception chez Brevo, vers `APP_URL/api/reception?cle=…`.
+
+Les pièces jointes sont listées dans l'email reçu mais pas encore importées. Brevo ne signe pas ses appels : la clé secrète de l'adresse d'appel en tient lieu. Si elle fuite, changez `INBOUND_SECRET`, puis relancez `brevo:reception` et supprimez l'ancienne déclaration dans Brevo.
+
 ## Points connus
 
 - **Suppression d'un compte** (règle 10, migration `20261014000001_rgpd.sql`) : le compte Auth est supprimé par le traitement serveur nommé « suppression de compte » (clé `service_role`). Les heures d'intervention gardent le nom de l'intervenant, ce qui laisse les rapports justes. La suppression d'une entreprise efface aussi ses fichiers dans le bucket.

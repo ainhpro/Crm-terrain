@@ -17,7 +17,7 @@ Tous les modules partagent le même fichier clients (organisations, clients, gro
 | Module | Dossier | Statut |
 |---|---|---|
 | CRM terrain (socle) | `src/modules/crm` | **En cours — V1** |
-| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (types d'intervention et donneurs d'ordre configurables, demande depuis un email, photos, heures, pièces à commander et suivi, rapport « fait / à commander / à faire » avec prix à l'heure ou au forfait, email préparé automatiquement au donneur d'ordre après validation, dossiers synchronisés téléphone et PC, recherche par numéro de ticket) |
+| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (types d'intervention et donneurs d'ordre configurables, demande depuis un email (transférée à l'adresse de réception propre au compte, ou collée), photos, heures, pièces à commander et suivi, rapport « fait / à commander / à faire » avec prix à l'heure ou au forfait, email préparé automatiquement au donneur d'ordre après validation, dossiers synchronisés téléphone et PC, recherche par numéro de ticket) |
 | Prospection | `src/modules/prospection` | Prévu (listes, séquences d'emails, RGPD) |
 | Faisabilité d'offres | `src/modules/offres` | Prévu (à spécifier : catalogue importé, offre PDF, prix calculés par le code) |
 | Route (tournées, notes de frais) | `src/modules/route` | Prévu (V2) |
@@ -74,6 +74,8 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | `npm run test:e2e:connexion` | Connexion Supabase (lien + code) dans un navigateur |
 | `npm run test:e2e:ia` | Compte rendu et lecture d'email par l'IA contre un faux service (voir l'en-tête du script) |
 | `npm run test:e2e:envois` | Envoi des emails contre un faux Brevo : envoi, coupure « à vérifier », refus et renvoi (voir l'en-tête du script) |
+| `npm run test:e2e:reception` | Réception des emails transférés : faux appels de Brevo (clé, doublons, adresses inconnues), puis emails reçus, création d'intervention, rattachement, refus (après `db:reset` ; voir l'en-tête du script) |
+| `npm run brevo:reception` | Déclare chez Brevo la réception des emails transférés, une fois l'application en ligne (sans `-- --apply`, rien n'est écrit) ; voir `docs/supabase.md` |
 | `npm run test:e2e:rgpd` | Export complet, suppression d'un compte et d'une entreprise dans un navigateur (après `db:reset` ; supprime des données de démonstration) |
 | `npm run test:e2e:relecture` | Contrôles navigateur de la relecture V1 (après `db:reset` ; modifie la base de démonstration) |
 

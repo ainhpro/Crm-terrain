@@ -62,6 +62,12 @@ export default async function TodayPage() {
               ))}
             </div>
           )}
+          {tech.pendingInbound > 0 && (
+            <a className="card pad row" href="/interventions/emails">
+              <span className="grow">{t.inbox.toProcess}</span>
+              <span className="tag accent">{tech.pendingInbound}</span>
+            </a>
+          )}
           {tech.waitingParts > 0 && (
             <a className="card pad row" href="/interventions?etat=waiting_parts">
               <span className="grow">{t.today.partsWaiting}</span>

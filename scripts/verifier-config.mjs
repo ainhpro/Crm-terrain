@@ -1,5 +1,6 @@
 // Vérifie la configuration de l'application sur ce poste (.env.local) et dit quoi corriger.
 // Ne modifie rien. Usage : npm run config:check
+import { resolveMx } from 'node:dns/promises';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
@@ -127,6 +128,24 @@ else {
 section('Envoi des emails (Brevo) — facultatif pour un premier essai');
 if (env('BREVO_API_KEY') && env('BREVO_SENDER_EMAIL')) ok('Brevo configuré');
 else info('Brevo non configuré : les emails des rapports restent « En file » (rien ne part)');
+
+section('Réception des emails transférés — facultatif, utile une fois en ligne');
+const inboundDomain = env('INBOUND_DOMAIN').toLowerCase();
+const inboundSecret = env('INBOUND_SECRET');
+if (!inboundDomain && !inboundSecret) info('Réception non configurée : les emails de demande se collent à la main (Interventions › Emails reçus)');
+else if (!inboundDomain || inboundSecret.length < 24) todo('Réception à moitié configurée', 'INBOUND_DOMAIN (sous-domaine de réception) et INBOUND_SECRET (24 caractères au moins : npm run config:secret)');
+else {
+  ok(`Domaine de réception : ${inboundDomain}`);
+  try {
+    const mx = (await resolveMx(inboundDomain)).map((r) => r.exchange.toLowerCase());
+    if (mx.some((h) => h.endsWith('sendinblue.com') || h.endsWith('brevo.com'))) ok('Enregistrements MX vers Brevo');
+    else todo(`Les MX de ${inboundDomain} ne pointent pas vers Brevo`, 'MX 10 inbound1.sendinblue.com et MX 20 inbound2.sendinblue.com (voir docs/supabase.md)');
+  } catch {
+    todo(`Aucun enregistrement MX pour ${inboundDomain}`, 'MX 10 inbound1.sendinblue.com et MX 20 inbound2.sendinblue.com (voir docs/supabase.md)');
+  }
+  if (!/^https:\/\//.test(env('APP_URL'))) info('APP_URL n’est pas en https : Brevo ne peut transmettre les emails qu’à l’application en ligne');
+  else info('Déclaration chez Brevo : npm run brevo:reception -- --apply');
+}
 
 console.log(lines.join('\n'));
 const left = lines.filter((l) => l.includes('À FAIRE')).length;

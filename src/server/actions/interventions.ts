@@ -12,7 +12,7 @@ import { aiEnabled } from '../ai/claude';
 import { parseRequestWithAi } from '../ai/request';
 import { requireCtx } from '../context';
 import { pgCode, type Q, withService, withUser } from '../db';
-import { loadVisit } from '../interventions';
+import { loadVisit, matchCasesByTickets } from '../interventions';
 import { scheduleOutbox } from '../outbox-run';
 import { renderReportPdf, SIGNATURE_NOT_REQUIRED } from '../pdf';
 import { saveBytes, saveFile } from '../storage';
@@ -108,6 +108,11 @@ export async function createCase(formData: FormData) {
       }
       if (when) {
         await q(`insert into service_visits (organization_id, case_id, scheduled_at) values ($1, $2, ($3::timestamp at time zone $4))`, [ctx.orgId, id, when, ctx.timezone]);
+      }
+      // Demande venue d'un email reçu : il est rattaché au nouveau dossier (la RLS limite au compte).
+      const messageId = opt(formData, 'messageId');
+      if (messageId) {
+        await q(`update inbound_messages set status = 'attached', attached_case_id = $1 where id = $2 and status = 'pending'`, [id, messageId]);
       }
       return id;
     });
@@ -526,18 +531,7 @@ export async function integrateEmail(_: InboundDraft | null, formData: FormData)
   const tickets = extractTicketNumbers(subject, body).map(normalizeTicket);
   const fingerprint = createHash('sha256').update(`${str(formData, 'from')}\n${subject}\n${body}`).digest('hex');
   return withUser(ctx.userId, async (q) => {
-    const matches = tickets.length
-      ? (await q<{ id: string; label: string; needs: { id: string; label: string; remaining: number }[] }>(
-          `select sc.id, min(c.name || ' · ' || r.number) as label,
-                  coalesce((select json_agg(json_build_object('id', n.id, 'label', n.designation || coalesce(' · ' || n.reference, ''),
-                                    'remaining', n.quantity - coalesce((select sum(quantity) from part_receipts pr where pr.need_id = n.id), 0)) order by n.created_at)
-                            from part_needs n where n.case_id = sc.id and n.cancelled_at is null
-                              and coalesce((select sum(quantity) from part_receipts pr where pr.need_id = n.id), 0) < n.quantity), '[]') as needs
-           from case_references r join service_cases sc on sc.id = r.case_id
-           join clients c on c.id = sc.client_id where lower(trim(r.number)) = any($1::text[]) group by sc.id`,
-          [tickets],
-        )).rows
-      : [];
+    const matches = await matchCasesByTickets(q, tickets);
     const ins = await q(
       `insert into inbound_messages (organization_id, from_address, subject, body_text, fingerprint, suggested_case_id)
        values ($1, $2, $3, $4, $5, $6) on conflict (organization_id, fingerprint) do nothing`,
@@ -550,11 +544,14 @@ export async function integrateEmail(_: InboundDraft | null, formData: FormData)
 export async function attachEmail(formData: FormData) {
   const ctx = await requireCtx();
   const caseId = str(formData, 'caseId');
+  const messageId = opt(formData, 'messageId');
   const subject = str(formData, 'subject');
   const body = str(formData, 'body');
   const fingerprint = createHash('sha256').update(`${str(formData, 'from')}\n${subject}\n${body}`).digest('hex');
   await withUser(ctx.userId, async (q) => {
-    await q(`update inbound_messages set status = 'attached', attached_case_id = $1 where fingerprint = $2`, [caseId, fingerprint]);
+    // Email reçu par transfert : désigné par son identifiant ; email collé : par son empreinte.
+    if (messageId) await q(`update inbound_messages set status = 'attached', attached_case_id = $1 where id = $2`, [caseId, messageId]);
+    else await q(`update inbound_messages set status = 'attached', attached_case_id = $1 where fingerprint = $2`, [caseId, fingerprint]);
     // « Pièce disponible » n'est pas « pièce reçue » : seules les lignes cochées, avec leur quantité (M03).
     const items = formData
       .getAll('receive')
@@ -563,6 +560,13 @@ export async function attachEmail(formData: FormData) {
     if (items.length) await receiveNeeds(q, ctx.orgId, caseId, items, 'email');
   });
   back(`/interventions/${caseId}`);
+}
+
+/** Email reçu sans suite : il quitte les demandes à traiter (il reste dans la base, rien n'est supprimé). */
+export async function ignoreMessage(formData: FormData) {
+  const ctx = await requireCtx();
+  await withUser(ctx.userId, (q) => q(`update inbound_messages set status = 'ignored' where id = $1 and status = 'pending'`, [str(formData, 'messageId')]));
+  back('/interventions/emails');
 }
 
 // ── Envois incertains ou en échec : l'utilisateur décide ─────────────
