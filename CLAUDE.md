@@ -34,7 +34,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 |---|---|
 | Application | Next.js + TypeScript, PWA installable |
 | Hébergement | Vercel, région Europe |
-| Base, auth, fichiers | Supabase, région Francfort (Postgres + RLS + Storage) |
+| Base, auth, fichiers | Supabase, région Irlande — West EU (Postgres + RLS + Storage) |
 | IA | API Claude (structuration des rapports, lecture des imports) |
 | Transcription | Service vocal FR/NL/IT, hébergé en Europe de préférence (à choisir) |
 | Cartes | Google Maps Platform |
@@ -103,7 +103,7 @@ docs/                    cahier des charges, prototype, analyses
 
 **État au 10 octobre 2026** : application V1 fonctionnelle en local (commercial et technicien), vérifiée par un parcours navigateur complet. Reste à brancher : Supabase (Auth, base, Storage), Vercel, API Claude, transcription, Brevo, OneDrive / Google Drive. Relecture externe de la V1 traitée : `docs/revue/2026-10-10-relecture-v1-reponse.md` ; conditions du pilote : `docs/pilote-fabrice.md`. Branchement Supabase écrit et testé contre un faux Supabase (connexion par lien + code, Storage privé, scripts de migration et de vérification) : `docs/supabase.md`. RGPD (règle 10) : export complet et suppression de l'entreprise ou du compte dans Réglages › Vos données. Envoi des emails (Brevo) : traitement sans doublon, résultats incertains laissés à l'utilisateur (`docs/pilote-fabrice.md` § 3) ; reste la clé Brevo. IA (Claude, `src/server/ai/`) : compte rendu et lecture d'email, propositions revérifiées par le code (`ai-check.ts`) ; reste la clé Anthropic et le choix de la transcription.
 
-1. Dépôt GitHub, projet Supabase (Francfort), projet Vercel. *(dépôt fait ; compte Supabase créé, projet et clés en attente ; code de branchement prêt ; Vercel en attente)*
+1. Dépôt GitHub, projet Supabase (Irlande), projet Vercel. *(dépôt fait ; compte Supabase créé, projet et clés en attente ; code de branchement prêt ; Vercel en attente)*
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée. *(schéma, RLS et tests faits en local ; écrans de connexion Supabase faits ; reste le projet réel)*
 3. Pipelines configurables et calcul des étapes déduites. *(moteur, modèle neutre à l'inscription, éditeur Réglages › Étapes de vente et modèle INDA faits)*
 4. Import Excel avec reconnaissance des colonnes par l'IA ; exports d'autres CRM reconnus (Teamleader, Pipedrive, HubSpot, Odoo, Salesforce, Zoho) ; import des clients INDA (+ reprise de la sauvegarde du prototype, convertisseur fait).

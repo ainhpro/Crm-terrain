@@ -1,4 +1,4 @@
-# Mise en service sur Supabase (Francfort) et Vercel
+# Mise en service sur Supabase (Irlande) et Vercel
 
 État au 11 octobre 2026 : le code de branchement est écrit et testé contre une copie locale qui imite Supabase. Il n'a encore jamais tourné contre le vrai projet : les clés ne sont pas encore disponibles.
 
@@ -9,7 +9,7 @@
 | Connexion | Supabase Auth sans mot de passe : l'utilisateur reçoit **un lien et un code à 6 chiffres**. Le serveur vérifie auprès de Supabase, pose la session signée de l'application, puis ferme la session Supabase. Ouvrir le lien ne connecte pas : il faut appuyer sur un bouton, sinon les antivirus de messagerie consommeraient les liens. Dès que Supabase est configuré, la connexion par email seul est impossible, et un cookie de développement, même correctement signé, est refusé. | `src/server/supabase/auth.ts`, `src/server/actions/auth.ts`, `src/app/connexion/`, `src/app/auth/confirmer/`, `src/server/session.ts`, `src/server/session-token.ts` |
 | Base | Même code qu'en local. `withUser` ouvre une transaction, passe au rôle `authenticated` et pose l'identité de l'utilisateur dans les claims, exactement comme l'API Supabase : la RLS s'applique. TLS vérifié avec le certificat de Supabase (`DATABASE_SSL_CA`, obligatoire en production). | `src/server/db.ts` |
 | Fichiers | Supabase Storage, bucket privé `fichiers`. Traitement serveur nommé : seule la clé `service_role` y accède, et seulement après le contrôle RLS de la route qui sert le fichier. Chemins uniques, jamais écrasés. Le disque local reste refusé sur Vercel. | `src/server/supabase/storage.ts`, `src/server/storage.ts` |
-| Hébergement | Fonctions Vercel en région Francfort (`fra1`). | `vercel.json` |
+| Hébergement | Fonctions Vercel en région Dublin (`dub1`), à côté de la base. | `vercel.json` |
 
 ## Scripts
 
@@ -33,7 +33,7 @@
 
 ### À faire par le propriétaire du compte Supabase (une fois)
 
-1. Créer le projet `crm-terrain`, région **Central EU (Frankfurt)**, avec un mot de passe de base solide.
+1. Créer le projet `crm-terrain`, région **West EU (Ireland)**, avec un mot de passe de base en lettres et chiffres.
 2. Ajouter dans les réglages de l'environnement Claude Code (Network secrets) : `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` (pooler, mode session), `SUPABASE_ACCESS_TOKEN`, `DATABASE_SSL_CA` (contenu du certificat de Project Settings › Database › SSL Configuration), et `APP_URL`, l'adresse finale. Pour un premier essai, l'adresse Vercel suffit.
 3. Dans Network access : autoriser `*.supabase.co` et `*.pooler.supabase.com`.
 4. Intégration GitHub de Supabase : ne pas activer le déploiement automatique des migrations sur `main`. Les migrations passent par les scripts ci-dessus, après relecture.
@@ -47,7 +47,7 @@
 
 ### Avant que Fabrice se connecte
 
-- **SMTP Brevo** : le service d'email intégré de Supabase n'écrit qu'aux membres de l'équipe du projet, avec une limite très basse. Il suffit pour un essai par le propriétaire, pas pour Fabrice. Il faut fournir `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_USER`, `SMTP_PASS` et `SMTP_SENDER_EMAIL` (adresse d'un domaine authentifié), puis relancer `supabase:setup`.
+- **SMTP Brevo** : obligatoire dès le premier essai sur l'offre gratuite, car Supabase y refuse de modifier les emails de connexion sans SMTP externe (l'email par défaut n'a ni le code ni le lien `/auth/confirmer`). Le service intégré n'écrirait de toute façon qu'aux membres de l'équipe du projet, avec une limite très basse. Il faut fournir `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_USER`, `SMTP_PASS` et `SMTP_SENDER_EMAIL` (adresse d'un domaine authentifié), puis relancer `supabase:setup`.
 - **Vercel** : créer le projet relié au dépôt, avec les variables de production listées dans `.env.example` (`DATABASE_URL` = pooler en **mode transaction**, port 6543 ; `DB_POOL_MAX=3`).
 
 ## Points connus

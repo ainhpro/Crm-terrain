@@ -8,7 +8,7 @@ Le parcours visé : connexion vérifiée → client ou dossier → compte rendu 
 
 | Étape | Aujourd'hui (local) | Indispensable pour le pilote | Paramètres manquants |
 |---|---|---|---|
-| Connexion vérifiée | **Code prêt** (lien + code par email, testé contre un faux Supabase) ; email seul en développement uniquement | Supabase Auth branché, SMTP Brevo pour écrire à Fabrice | Projet Supabase Francfort : URL, clé publique (anon), clé `service_role` (serveur uniquement), modèle d'email de connexion |
+| Connexion vérifiée | **Code prêt** (lien + code par email, testé contre un faux Supabase) ; email seul en développement uniquement | Supabase Auth branché, SMTP Brevo pour écrire à Fabrice | Projet Supabase Irlande : URL, clé publique (anon), clé `service_role` (serveur uniquement), modèle d'email de connexion |
 | Données persistantes | Postgres local qui reproduit Supabase | Base Supabase, migrations appliquées dans l'ordre | Même projet ; mot de passe de la base pour les migrations |
 | Photos, signatures, PDF | **Code prêt** (Supabase Storage, bucket privé, testé contre un faux Supabase) ; disque local en développement | Bucket créé par `npm run supabase:setup` | Nom du bucket ; politique de conservation |
 | Hébergement | `next dev` / `next start` local | Vercel, région Europe | Projet Vercel, domaine, variables d'environnement (dont `SESSION_SECRET`, qui signe la session de l'application) |
@@ -70,7 +70,7 @@ Sur Vercel Hobby, les tâches planifiées sont limitées à une par jour (passag
 | Finalités | Suivi commercial, interventions, rapports | Liste à valider ; pas de prospection automatique |
 | Données | Clients professionnels et particuliers : nom, adresse, téléphone, email ; photos de chantier ; signature ; textes dictés | Éviter les données sensibles dans les remarques (consigne d'usage) |
 | Accès | Isolation par compte (RLS), rôles propriétaire / membre, fichiers servis après contrôle | Liste des personnes ayant accès au compte |
-| Sous-traitants | Supabase (Francfort), Vercel (Europe), Anthropic (structuration : seulement le texte dicté, les noms des étapes et des affaires du client, ou l'objet et le texte d'un email de demande ; jamais de photo, de prix ni de fichier), Brevo ; à venir : transcription | Accords de sous-traitance et choix de régions ; ce qui est envoyé à chacun (texte seulement, jamais de photos à l'IA sans besoin) |
+| Sous-traitants | Supabase (Irlande), Vercel (Europe), Anthropic (structuration : seulement le texte dicté, les noms des étapes et des affaires du client, ou l'objet et le texte d'un email de demande ; jamais de photo, de prix ni de fichier), Brevo ; à venir : transcription | Accords de sous-traitance et choix de régions ; ce qui est envoyé à chacun (texte seulement, jamais de photos à l'IA sans besoin) |
 | Conservation | Rien n'est purgé automatiquement | Durées : dossiers SAV, photos, audios (supprimables après transcription, règle 10) |
 | Suppression et export | **Fait** (Réglages › Vos données) : export complet en archive .tar (tables + fichiers, propriétaire) ; suppression de l'entreprise (propriétaire, confirmation par le nom) ; suppression de son compte (les heures gardent le nom, les rapports restent justes) | Délai de réponse aux demandes, et qui les traite |
 | Journaux | Pas de contenu métier dans les journaux serveur | Durée de conservation des journaux Vercel et Supabase |

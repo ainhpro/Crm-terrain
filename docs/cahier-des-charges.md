@@ -328,7 +328,7 @@ L'application est le seul point qui parle à la base, à l'IA et aux services : 
 | Code et versions | GitHub (dépôt privé) | Historique complet, Claude Code travaille dessus |
 | Application | Next.js + TypeScript, app web installable (PWA) | Un seul code pour téléphone et ordinateur ; app native possible plus tard |
 | Hébergement | Vercel, région Europe | Mise en ligne automatique à chaque modification validée |
-| Base, comptes, fichiers | Supabase, région Francfort | Postgres, isolation des données par compte, stockage audio et photos |
+| Base, comptes, fichiers | Supabase, région Irlande (West EU) | Postgres, isolation des données par compte, stockage audio et photos |
 | IA | API Claude | Structuration des rapports, lecture des imports Excel et PDF, tickets |
 | Transcription | Service de reconnaissance vocale (hébergé en Europe de préférence) | Voix → texte en FR, NL, IT |
 | Cartes et tournées | Google Maps Platform | Géolocalisation des adresses, temps de trajet, optimisation |
@@ -397,7 +397,7 @@ On construit par petites étapes testables, chacune utilisée par Fabrice avant 
 
 **Démarrage de la V1, étape par étape**
 
-1. Créer le dépôt GitHub, le projet Supabase (Francfort) et le projet Vercel.
+1. Créer le dépôt GitHub, le projet Supabase (Irlande) et le projet Vercel.
 2. Socle : comptes, organisations, clients, groupes, contacts, isolation testée.
 3. Pipelines configurables et calcul des étapes déduites ; modèle neutre pour tout nouveau compte, pipelines INDA comme modèle pour Fabrice.
 4. Import Excel avec reconnaissance des colonnes par l'IA (y compris exports d'autres CRM) ; import des clients INDA de Fabrice.

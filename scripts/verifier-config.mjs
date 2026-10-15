@@ -4,6 +4,7 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
 import pg from 'pg';
+import { BAN_HINT, dbPasswordHints, dbUrlProblem } from './supabase/lib.mjs';
 
 const env = (k) => process.env[k]?.trim() || '';
 const lines = [];
@@ -58,6 +59,8 @@ if (!supa && mode === 'dev') {
       todo('Stockage Supabase injoignable');
     }
   }
+  if (['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_SENDER_EMAIL'].every((k) => env(k))) ok('SMTP des emails de connexion renseigné (appliqué par npm run supabase:setup -- --apply)');
+  else todo('SMTP des emails de connexion absent : sur l\'offre gratuite de Supabase, l\'email de connexion n\'a ni le code ni le bon lien', 'Brevo › SMTP & API › SMTP : SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_SENDER_EMAIL dans .env.local, puis npm run supabase:setup -- --apply (docs/demarrage-pc.md, étape 4 bis)');
   if (!env('APP_URL')) todo('APP_URL absent (lien des emails de connexion)', 'sur ce PC : APP_URL=http://localhost:3000');
   else ok(`APP_URL = ${env('APP_URL')}`);
   if (!env('SUPABASE_ACCESS_TOKEN')) info('SUPABASE_ACCESS_TOKEN absent : nécessaire une fois pour npm run supabase:setup (emails de connexion)');
@@ -66,6 +69,7 @@ if (!supa && mode === 'dev') {
 section('Base de données');
 const dbUrl = env('DATABASE_URL');
 if (!dbUrl) todo('DATABASE_URL absent', 'Supabase › bouton « Connect » › « Session pooler » (avec votre mot de passe de base)');
+else if (dbUrlProblem(dbUrl)) todo('DATABASE_URL illisible', dbUrlProblem(dbUrl));
 else {
   const u = new URL(dbUrl);
   const local = ['localhost', '127.0.0.1', '::1'].includes(u.hostname);
@@ -89,9 +93,11 @@ else {
     if (missing.length) todo(`${missing.length} migration(s) à appliquer sur ${files.length}`, local ? 'npm run db:migrate' : 'npm run supabase:migrate -- --apply');
     else ok(`Schéma à jour (${files.length} migrations)`);
   } catch (e) {
-    const m = String(e.message);
-    if (/password/i.test(m)) todo('Mot de passe de la base refusé', 'recopier l\'adresse « Session pooler » et remplacer [YOUR-PASSWORD] par votre mot de passe');
-    else todo(`Base injoignable : ${m.slice(0, 120)}`, 'vérifier DATABASE_URL (adresse « Session pooler », port 5432)');
+    const m = String(e.message || e.code || 'erreur réseau');
+    const where = `${u.hostname}, port ${u.port || 5432}`;
+    if (e.code === '28P01' || /password/i.test(m)) todo(`Mot de passe de la base refusé (${where})`, dbPasswordHints(dbUrl, supa).join('\n           → '));
+    else if (e.code === 'ECONNREFUSED' && !local) todo(`Connexion refusée par la base (${where})`, BAN_HINT);
+    else todo(`Base injoignable (${where}) : ${m.slice(0, 120)}`, 'vérifier DATABASE_URL (adresse « Session pooler », port 5432)');
   } finally {
     await client.end().catch(() => {});
   }

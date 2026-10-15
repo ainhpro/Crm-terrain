@@ -40,7 +40,7 @@ npm run test:e2e    # parcours complet dans un navigateur (app lancée sur le po
 | Fonction | Aujourd'hui | Quand le service sera branché |
 |---|---|---|
 | Connexion | email seul (développement uniquement, désactivée en production) | Supabase Auth, lien par email |
-| Base de données | Postgres local avec émulation Supabase | Supabase Francfort (mêmes migrations) |
+| Base de données | Postgres local avec émulation Supabase | Supabase Irlande (mêmes migrations) |
 | Lecture des emails, notices, comptes rendus | règles locales, chaque champ montré avec sa source | API Claude, même format de sortie |
 | Dictée | dictée du navigateur ou du clavier | service de transcription européen |
 | Envoi des emails et commandes | file d'envoi (rien ne part réellement) | Brevo |

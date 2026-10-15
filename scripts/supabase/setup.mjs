@@ -48,6 +48,7 @@ if (smtp) {
     smtp_sender_name: process.env.SMTP_SENDER_NAME || 'CRM terrain',
   });
 }
+const EMAILS_PER_HOUR = 30; // pour tout le projet ; sans SMTP, Supabase le bloque à 2 par heure
 
 const bucket = {
   id: BUCKET,
@@ -58,8 +59,8 @@ const bucket = {
 };
 
 console.log(`Projet ${ref} — site ${appUrl}`);
-console.log(`Auth : adresse du site, liens autorisés ${auth.uri_allow_list}, emails FR/NL (lien + code, 1 h)${smtp ? ', SMTP personnalisé' : ''}.`);
-if (!smtp) console.log('  SMTP non fourni : le SMTP intégré de Supabase n’écrit qu’aux membres de l’équipe du projet (suffisant pour un essai).');
+console.log(`Auth : adresse du site, liens autorisés ${auth.uri_allow_list}, emails FR/NL (lien + code, 1 h)${smtp ? `, SMTP personnalisé, ${EMAILS_PER_HOUR} emails par heure` : ''}.`);
+if (!smtp) console.log('  SMTP non fourni : sur l’offre gratuite, Supabase refuse de modifier les emails de connexion (docs/demarrage-pc.md, étape 4 bis).');
 console.log(`Storage : bucket « ${BUCKET} » privé, 10 Mo maximum, images et PDF.`);
 if (!apply) {
   console.log('Rien n’a été modifié. Relancer avec --apply pour appliquer.');
@@ -68,8 +69,20 @@ if (!apply) {
 
 let failed = false;
 const r1 = await http(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { method: 'PATCH', headers: managementHeaders(), body: auth });
-console.log(r1.ok ? 'Auth configurée.' : `ÉCHEC Auth (${r1.status}) : ${r1.text.slice(0, 300)}`);
+if (r1.ok) console.log('Auth configurée.');
+else if (!smtp && /free tier|custom SMTP/i.test(r1.text)) {
+  console.log('ÉCHEC Auth : sur l’offre gratuite, Supabase ne laisse modifier les emails de connexion qu’avec un SMTP externe.');
+  console.log('  → Brevo › SMTP & API › SMTP : remplir SMTP_HOST, SMTP_USER, SMTP_PASS et SMTP_SENDER_EMAIL dans .env.local, puis relancer (docs/demarrage-pc.md, étape 4 bis).');
+} else console.log(`ÉCHEC Auth (${r1.status}) : ${r1.text.slice(0, 300)}`);
 failed ||= !r1.ok;
+
+if (r1.ok && smtp) {
+  // Requête à part : mêlée aux réglages SMTP, la limite est ignorée sans erreur (constaté en octobre 2026).
+  const r = await http(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { method: 'PATCH', headers: managementHeaders(), body: { rate_limit_email_sent: EMAILS_PER_HOUR } });
+  const set = r.ok && r.json?.rate_limit_email_sent === EMAILS_PER_HOUR;
+  console.log(set ? `Limite : ${EMAILS_PER_HOUR} emails de connexion par heure.` : `ÉCHEC limite d'envoi (${r.status}) : ${r.text.slice(0, 300)}`);
+  failed ||= !set;
+}
 
 const exists = await http(`${supabaseUrl}/storage/v1/bucket/${BUCKET}`, { headers: serviceHeaders() });
 const r2 = exists.ok

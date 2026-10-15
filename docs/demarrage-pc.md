@@ -1,6 +1,6 @@
 # Faire tourner l'application sur son PC et la tester comme commercial terrain
 
-Ce guide est pour le propriétaire du projet, sur un PC Windows ou un Mac, avec VS Code et Claude Code. Comptez environ 45 minutes la première fois. La base de données, la connexion et les fichiers sont ceux de votre projet Supabase (Francfort). L'IA utilise votre clé Anthropic.
+Ce guide est pour le propriétaire du projet, sur un PC Windows ou un Mac, avec VS Code et Claude Code. Comptez environ 45 minutes la première fois. La base de données, la connexion et les fichiers sont ceux de votre projet Supabase (Irlande). L'IA utilise votre clé Anthropic.
 
 > **Les clés et mots de passe ne se collent jamais dans une conversation**, ni avec Claude Code ni ailleurs. Ils vont dans le fichier `.env.local` de votre PC. Ce fichier n'est jamais envoyé sur GitHub.
 
@@ -31,7 +31,7 @@ La branche `claude/demarrage-pc` contient tout le travail déjà fait : V1, rele
 ## 3. Créer le projet Supabase (une fois)
 
 Sur supabase.com :
-1. **New project** : nom `crm-terrain`, région **Central EU (Frankfurt)**. Choisissez un mot de passe de base solide et notez-le dans votre gestionnaire de mots de passe.
+1. **New project** : nom `crm-terrain`, région **West EU (Ireland)**. Choisissez un mot de passe de base long, en lettres et chiffres seulement, et notez-le dans votre gestionnaire de mots de passe.
 2. **Project Settings › API** : notez
    - l'**URL** du projet (`https://xxxx.supabase.co`) ;
    - la clé **anon** (ou « publishable ») ;
@@ -47,6 +47,17 @@ Sur console.anthropic.com :
 
 Coût indicatif : quelques centimes par compte rendu ou par email lu. Sans clé, l'application fonctionne quand même : les propositions sont alors préparées par des règles simples.
 
+## 4 bis. Créer le compte Brevo (emails de connexion)
+
+Sur l'offre gratuite, Supabase n'envoie l'email de connexion de l'application (lien + code) que par un service d'envoi externe. Brevo est gratuit jusqu'à 300 emails par jour.
+
+Sur brevo.com :
+1. Créez un compte gratuit, ou utilisez celui que vous avez déjà.
+2. **Expéditeurs, domaines et IP dédiées › Expéditeurs** : ajoutez l'adresse d'expédition et validez-la avec l'email reçu. Une adresse de votre domaine professionnel, authentifié dans **Domaines**, arrive mieux qu'une adresse Gmail.
+3. **SMTP & API › SMTP** (menu de votre profil, en haut à droite) : notez l'**identifiant** (il se termine par `@smtp-brevo.com`), puis **Générer une nouvelle clé SMTP**, nommée `crm-terrain`, et copiez-la tout de suite. Une clé propre à l'application se supprime sans toucher à vos autres usages de Brevo.
+
+Le même compte servira plus tard à envoyer les rapports aux clients (clé API Brevo).
+
 ## 5. Remplir `.env.local`
 
 1. Dans VS Code, faites une copie du fichier `.env.example` et nommez la copie `.env.local`.
@@ -60,8 +71,14 @@ APP_URL=http://localhost:3000
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=votre-cle-anon
 SUPABASE_SERVICE_ROLE_KEY=votre-cle-service-role
-DATABASE_URL=postgresql://postgres.xxxx:VOTRE-MOT-DE-PASSE@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.xxxx:VOTRE-MOT-DE-PASSE@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
 SUPABASE_ACCESS_TOKEN=sbp_votre-jeton
+
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=votre-identifiant@smtp-brevo.com
+SMTP_PASS=votre-cle-smtp
+SMTP_SENDER_EMAIL=adresse-validee-dans-brevo
 
 ANTHROPIC_API_KEY=sk-ant-votre-cle
 ```
@@ -94,7 +111,7 @@ npm run dev
 
 Ouvrez **http://localhost:3000** dans Chrome ou Edge. Pour arrêter l'application : `Ctrl + C` dans le terminal.
 
-**Connexion** : utilisez **l'adresse email de votre compte Supabase**. Tant que Brevo n'est pas branché, le service d'email de Supabase n'écrit qu'aux membres du projet, et en petite quantité (quelques emails par heure). Vous recevez un email avec un lien et un code à 6 chiffres : tapez le code, ou ouvrez le lien puis appuyez sur « Se connecter ».
+**Connexion** : entrez votre adresse email. L'email de connexion part par Brevo : il contient un lien et un code à 6 chiffres. Tapez le code, ou ouvrez le lien puis appuyez sur « Se connecter ».
 
 À la première connexion :
 - **Nom de votre entreprise** : par exemple le vôtre ;
@@ -135,8 +152,10 @@ Claude Code suit les règles du projet écrites dans `CLAUDE.md` : une branche p
 
 | Message | Solution |
 |---|---|
-| `password authentication failed` | Mot de passe de base faux dans `DATABASE_URL`. Recopiez l'adresse « Session pooler » et remplacez `[YOUR-PASSWORD]` |
-| « Trop de demandes » à la connexion | Le service d'email intégré de Supabase est limité à quelques emails par heure : attendez, ou branchez Brevo (voir `docs/supabase.md`) |
-| Aucun email de connexion reçu | Utilisez l'adresse de votre compte Supabase, et regardez dans les indésirables |
+| « Mot de passe de la base refusé » | `npm run config:check` dit ce qui cloche dans `DATABASE_URL` : crochets `[ ]` restés autour du mot de passe, adresse d'un autre projet, caractère spécial. Si l'adresse a la bonne forme : Supabase › Database › Settings › « Reset database password », avec un mot de passe en lettres et chiffres seulement |
+| « Connexion refusée par la base » | Après plusieurs mots de passe refusés, Supabase bloque votre adresse internet environ 30 minutes. Corrigez d'abord le mot de passe, puis attendez, ou débloquez dans Supabase › Database › Settings › « Network bans » |
+| « ÉCHEC Auth : sur l'offre gratuite… » avec `supabase:setup` | Le SMTP Brevo manque dans `.env.local` : voir l'étape 4 bis, puis relancez `npm run supabase:setup -- --apply` |
+| « Trop de demandes » à la connexion | Supabase limite le nombre d'emails de connexion par heure : attendez quelques minutes |
+| Aucun email de connexion reçu | Regardez dans les indésirables, puis dans Brevo › Transactionnel › Journaux : l'email est-il parti ? L'adresse d'expédition doit être validée dans Brevo |
 | « Proposition préparée par des règles simples » alors que la clé est remplie | `npm run config:check` vérifie la clé Anthropic et le crédit du compte |
 | `npm` n'est pas reconnu | Fermez puis rouvrez VS Code après avoir installé Node.js |
