@@ -1,6 +1,7 @@
 import { Flash, formatDate, Icon } from '@/components';
 import { requireCtx } from '@/server/context';
 import { withUser } from '@/server/db';
+import { scheduleMailboxFetch } from '@/server/imap';
 import { countPendingInbound, searchCases } from '@/server/interventions';
 
 const TAG: Record<string, string> = { waiting_parts: 'warn', return_to_plan: 'accent', closed: 'ok', cancelled: '', in_progress: 'accent', planned: '', new: '' };
@@ -9,6 +10,7 @@ export default async function InterventionsPage({ searchParams }: { searchParams
   const ctx = await requireCtx();
   const { t, locale } = ctx;
   const sp = await searchParams;
+  scheduleMailboxFetch();
   const [cases, pendingInbound] = await withUser(ctx.userId, async (q) => [await searchCases(q, sp.q ?? '', sp.etat ?? null), await countPendingInbound(q)] as const);
   return (
     <main className="page">

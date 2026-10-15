@@ -12,8 +12,8 @@ import { withUser } from '@/server/db';
 import { effectiveProfile, isProfile, profilesFor } from '@/modules/crm/formule';
 import { readOptions } from '@/modules/interventions/options';
 import { loadOrgIdentity } from '@/server/interventions';
-import { inboundAddress } from '@/modules/interventions/inbound';
-import { inboundConfig } from '@/server/config';
+import { addressFor } from '@/modules/interventions/inbound';
+import { receptionScheme } from '@/server/config';
 import { AddressCard } from '../interventions/emails/address-card';
 
 type Member = { user_id: string; name: string; role: 'owner' | 'member'; profile: string | null; type_ids: string[] | null; options: unknown };
@@ -48,8 +48,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   }));
   const isOwner = ctx.role === 'owner';
   const profiles = profilesFor(ctx.modules);
-  const reception = inboundConfig();
-  const inbound = reception && data.inboundToken ? inboundAddress(data.inboundToken, reception.domain) : null;
+  const reception = receptionScheme();
+  const inbound = reception && data.inboundToken ? addressFor(reception, data.inboundToken) : null;
   const me = data.members.find((m) => m.user_id === ctx.userId);
   const editable = isOwner ? data.members : me ? [me] : [];
   const errorText = sp.erreur === 'vat' ? t.settings.vatInvalid : sp.erreur === 'owner' ? t.settings.ownerOnly : sp.erreur === 'inUse' ? t.settings.stepsInUse : sp.erreur === 'confirm' ? t.settings.confirmError : sp.erreur === 'lastOwner' ? t.settings.lastOwner : t.common.error;

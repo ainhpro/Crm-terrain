@@ -15,6 +15,7 @@ let tokenA: string;
 let tokenB: string;
 let caseA: string;
 let receiveInbound: typeof import('../../src/server/reception').receiveInbound;
+let storeInbound: typeof import('../../src/server/reception').storeInbound;
 
 async function makeCase(owner: string, org: string, ticket: string): Promise<string> {
   return asUser(db, owner, async (q) => {
@@ -52,7 +53,7 @@ beforeAll(async () => {
   await makeCase(bob, orgB, 'T-100'); // même numéro chez l'autre compte
   process.env.DATABASE_URL = inject('testDbUrl');
   (globalThis as unknown as { crmPool?: pg.Pool }).crmPool = new pg.Pool({ connectionString: inject('testDbUrl'), max: 4 });
-  ({ receiveInbound } = await import('../../src/server/reception'));
+  ({ receiveInbound, storeInbound } = await import('../../src/server/reception'));
 });
 
 afterAll(async () => {
@@ -123,6 +124,18 @@ describe('réception d’emails', () => {
     const last = (await rowsOf(orgB)).at(-1);
     expect(last).toMatchObject({ from_address: 'client@exemple.be', subject: 'Panne chaudière', attachments: [{ name: 'photo.jpg', type: 'image/jpeg', size: 1000 }] });
     expect(JSON.stringify(last)).not.toContain('jeton-brevo');
+  });
+
+  it('relève IMAP : « boîte+jeton » range chez le bon compte, une boîte ou un jeton inconnus sont ignorés', async () => {
+    const before = (await rowsOf(orgA)).length;
+    const mail = (to: string, id: string) => ({ messageId: id, from: 'sav@fabricant.test', recipients: [to], subject: 'Par IMAP', text: 'Bonjour', attachments: [] });
+    const r = await storeInbound([
+      mail(`sitotdemandes+${tokenA}@gmail.com`, '<imap-1@test>'), // Gmail ôte les points
+      mail(`autre+${tokenA}@gmail.com`, '<imap-2@test>'),
+      mail(`sitot.demandes+${'e'.repeat(20)}@gmail.com`, '<imap-3@test>'),
+    ], { kind: 'plus', mailbox: 'sitot.demandes@gmail.com' });
+    expect(r).toEqual({ received: 1, duplicates: 0, ignored: 2 });
+    expect((await rowsOf(orgA)).length).toBe(before + 1);
   });
 
   it('les emails reçus restent invisibles pour l’autre compte', async () => {

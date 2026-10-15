@@ -52,6 +52,8 @@
 
 ### Réception des emails transférés (après la mise en ligne)
 
+Sans attendre la mise en ligne, l'application peut relever une boîte mail par IMAP : voir `docs/demarrage-pc.md`, étape 8 ter. La réception par Brevo ci-dessous la remplace quand le domaine est prêt ; les deux peuvent coexister, car le jeton de l'adresse désigne le compte dans les deux cas.
+
 Chaque compte a une adresse de réception propre, `<jeton>@<domaine de réception>`, affichée dans Interventions › Emails reçus et dans Réglages. Le technicien y transfère ses emails de demande, à la main ou par une règle automatique de sa messagerie ; ils arrivent dans « Demandes reçues à traiter », et rien n'est créé sans sa validation. Le compte est déterminé par le jeton de l'adresse, jamais par le ticket ou l'expéditeur.
 
 1. Choisir un sous-domaine de réception, distinct du domaine d'envoi, par exemple `reception.<domaine>`, et le vérifier dans Brevo.

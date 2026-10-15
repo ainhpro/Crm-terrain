@@ -18,7 +18,7 @@ Tous les modules partagent le même fichier clients (organisations, clients, gro
 | Module | Dossier | Statut |
 |---|---|---|
 | CRM terrain (socle) | `src/modules/crm` | **En cours — V1** |
-| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (types d'intervention et donneurs d'ordre configurables, demande depuis un email (transférée à l'adresse de réception propre au compte, ou collée), photos, heures, pièces à commander et suivi, rapport « fait / à commander / à faire » avec prix à l'heure ou au forfait, email préparé automatiquement au donneur d'ordre après validation, dossiers synchronisés téléphone et PC, recherche par numéro de ticket) |
+| Interventions (technicien SAV) | `src/modules/interventions` | **V1** (types d'intervention et donneurs d'ordre configurables, demande depuis un email (transférée à l'adresse de réception propre au compte — boîte relevée par IMAP, ou domaine de réception Brevo — ou collée), photos, heures, pièces à commander et suivi, rapport « fait / à commander / à faire » avec prix à l'heure ou au forfait, email préparé automatiquement au donneur d'ordre après validation, dossiers synchronisés téléphone et PC, recherche par numéro de ticket) |
 | Prospection | `src/modules/prospection` | Prévu (listes, séquences d'emails, RGPD) |
 | Faisabilité d'offres | `src/modules/offres` | Prévu (à spécifier : catalogue importé, offre PDF, prix calculés par le code) |
 | Route (tournées, notes de frais) | `src/modules/route` | Prévu (V2) |
@@ -41,7 +41,7 @@ Ne rien construire des modules prévus sans demande explicite. Chaque module s'a
 | Cartes | Google Maps Platform |
 | Agendas (V2) | Google Calendar API, Microsoft Graph |
 | Stockage des rapports | Copie automatique des PDF dans OneDrive (Microsoft Graph) et Google Drive (API Drive) |
-| Emails | Brevo |
+| Emails | Brevo (envoi ; réception par domaine à soi) ; réception sans domaine : boîte relevée par IMAP (imapflow, mailparser) |
 | Paiement | Stripe Billing (carte, Bancontact, SEPA) |
 | Traductions | Fichiers de langue FR / NL (IT ajouté sans toucher au code) |
 | Tests | Vitest |

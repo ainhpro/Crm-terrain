@@ -4,6 +4,7 @@ import { resolveMx } from 'node:dns/promises';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
+import { ImapFlow } from 'imapflow';
 import pg from 'pg';
 import { BAN_HINT, dbPasswordHints, dbUrlProblem } from './supabase/lib.mjs';
 
@@ -129,22 +130,57 @@ section('Envoi des emails (Brevo) — facultatif pour un premier essai');
 if (env('BREVO_API_KEY') && env('BREVO_SENDER_EMAIL')) ok('Brevo configuré');
 else info('Brevo non configuré : les emails des rapports restent « En file » (rien ne part)');
 
-section('Réception des emails transférés — facultatif, utile une fois en ligne');
+section('Réception des emails transférés — facultatif');
+const imapHost = env('IMAP_HOST').toLowerCase();
+const imapUser = env('IMAP_USER').toLowerCase();
+const imapPass = process.env.IMAP_PASSWORD ?? '';
 const inboundDomain = env('INBOUND_DOMAIN').toLowerCase();
 const inboundSecret = env('INBOUND_SECRET');
-if (!inboundDomain && !inboundSecret) info('Réception non configurée : les emails de demande se collent à la main (Interventions › Emails reçus)');
-else if (!inboundDomain || inboundSecret.length < 24) todo('Réception à moitié configurée', 'INBOUND_DOMAIN (sous-domaine de réception) et INBOUND_SECRET (24 caractères au moins : npm run config:secret)');
-else {
-  ok(`Domaine de réception : ${inboundDomain}`);
-  try {
-    const mx = (await resolveMx(inboundDomain)).map((r) => r.exchange.toLowerCase());
-    if (mx.some((h) => h.endsWith('sendinblue.com') || h.endsWith('brevo.com'))) ok('Enregistrements MX vers Brevo');
-    else todo(`Les MX de ${inboundDomain} ne pointent pas vers Brevo`, 'MX 10 inbound1.sendinblue.com et MX 20 inbound2.sendinblue.com (voir docs/supabase.md)');
-  } catch {
-    todo(`Aucun enregistrement MX pour ${inboundDomain}`, 'MX 10 inbound1.sendinblue.com et MX 20 inbound2.sendinblue.com (voir docs/supabase.md)');
+if (!imapHost && !imapUser && !imapPass && !inboundDomain && !inboundSecret) {
+  info('Réception non configurée : les emails de demande se collent à la main (Interventions › Emails reçus)');
+}
+if (imapHost || imapUser || imapPass) {
+  const port = Number(env('IMAP_PORT') || 993);
+  const local = ['localhost', '127.0.0.1', '::1'].includes(imapHost);
+  if (!imapHost || !imapUser || !imapPass) todo('Relève de la boîte à moitié configurée', 'IMAP_HOST, IMAP_USER (adresse de la boîte) et IMAP_PASSWORD (voir docs/demarrage-pc.md, étape 8 ter)');
+  else if (!/^[^\s@+]+@[^\s@]+\.[^\s@]+$/.test(imapUser)) todo('IMAP_USER doit être l’adresse complète de la boîte, sans « + »');
+  else if (!local && port !== 993) todo(`IMAP_PORT=${port} : seule la connexion chiffrée (993) est acceptée`, 'IMAP_PORT=993, ou supprimer la ligne');
+  else {
+    const client = new ImapFlow({
+      host: imapHost, port, secure: port === 993, logger: false, socketTimeout: 20000,
+      auth: { user: imapUser, pass: imapHost === 'imap.gmail.com' ? imapPass.replace(/\s+/g, '') : imapPass },
+    });
+    try {
+      await client.connect();
+      const box = await client.mailboxOpen('INBOX', { readOnly: true });
+      ok(`Boîte ${imapUser} relevée par IMAP (${box.exists} email(s) dans la boîte de réception)`);
+      const [l, d] = imapUser.split('@');
+      info(`Adresses de réception : ${l}+<jeton>@${d}, une par compte (Interventions › Emails reçus)`);
+    } catch (e) {
+      if (e.authenticationFailed || /auth|credential|password/i.test(String(e.responseText ?? e.message))) {
+        todo('La boîte refuse le mot de passe', imapHost === 'imap.gmail.com'
+          ? 'Gmail : compte Google › Sécurité › Validation en deux étapes, puis « Mots de passe des applications » ; coller ce mot de passe dans IMAP_PASSWORD'
+          : 'vérifier IMAP_USER et IMAP_PASSWORD');
+      } else todo(`Boîte injoignable (${e.code ?? String(e.message).slice(0, 80)})`, 'vérifier IMAP_HOST (Gmail : imap.gmail.com) et la connexion internet');
+    } finally {
+      await client.logout().catch(() => client.close());
+    }
   }
-  if (!/^https:\/\//.test(env('APP_URL'))) info('APP_URL n’est pas en https : Brevo ne peut transmettre les emails qu’à l’application en ligne');
-  else info('Déclaration chez Brevo : npm run brevo:reception -- --apply');
+}
+if (inboundDomain || inboundSecret) {
+  if (!inboundDomain || inboundSecret.length < 24) todo('Réception Brevo à moitié configurée', 'INBOUND_DOMAIN (sous-domaine de réception) et INBOUND_SECRET (24 caractères au moins : npm run config:secret)');
+  else {
+    ok(`Domaine de réception (Brevo) : ${inboundDomain}`);
+    try {
+      const mx = (await resolveMx(inboundDomain)).map((r) => r.exchange.toLowerCase());
+      if (mx.some((h) => h.endsWith('sendinblue.com') || h.endsWith('brevo.com'))) ok('Enregistrements MX vers Brevo');
+      else todo(`Les MX de ${inboundDomain} ne pointent pas vers Brevo`, 'MX 10 inbound1.sendinblue.com et MX 20 inbound2.sendinblue.com (voir docs/supabase.md)');
+    } catch {
+      todo(`Aucun enregistrement MX pour ${inboundDomain}`, 'MX 10 inbound1.sendinblue.com et MX 20 inbound2.sendinblue.com (voir docs/supabase.md)');
+    }
+    if (!/^https:\/\//.test(env('APP_URL'))) info('APP_URL n’est pas en https : Brevo ne peut transmettre les emails qu’à l’application en ligne');
+    else info('Déclaration chez Brevo : npm run brevo:reception -- --apply');
+  }
 }
 
 console.log(lines.join('\n'));

@@ -1,17 +1,22 @@
-import { BackLink, formatDate } from '@/components';
-import { inboundAddress } from '@/modules/interventions/inbound';
-import { inboundConfig } from '@/server/config';
+import { BackLink, Flash, formatDate } from '@/components';
+import { addressFor } from '@/modules/interventions/inbound';
+import { fetchMailboxAction } from '@/server/actions/interventions';
+import { imapConfig, receptionScheme } from '@/server/config';
 import { requireCtx } from '@/server/context';
 import { withUser } from '@/server/db';
+import { scheduleMailboxFetch } from '@/server/imap';
 import { loadPendingInbound } from '@/server/interventions';
 import { AddressCard } from './address-card';
 import { InboundForm } from './inbound-form';
 
 /** Emails reçus : adresse de réception du compte, emails à traiter, et collage à la main en secours. */
-export default async function InboundPage() {
+export default async function InboundPage({ searchParams }: { searchParams: Promise<{ releve?: string }> }) {
   const ctx = await requireCtx();
   const { t, locale } = ctx;
-  const cfg = inboundConfig();
+  const { releve } = await searchParams;
+  const cfg = receptionScheme();
+  const mailbox = imapConfig() !== null;
+  if (mailbox && releve === undefined) scheduleMailboxFetch();
   const data = await withUser(ctx.userId, async (q) => ({
     token: (await q<{ inbound_token: string }>(`select inbound_token from organizations where id = $1`, [ctx.orgId])).rows[0]?.inbound_token,
     pending: await loadPendingInbound(q),
@@ -22,9 +27,12 @@ export default async function InboundPage() {
         <BackLink href="/interventions" label={t.common.back} />
         <h1>{t.inbox.title}</h1>
       </div>
+      {releve !== undefined && (
+        <Flash kind={releve === 'erreur' ? 'bad' : 'ok'}>{releve === 'erreur' ? t.inbox.fetchError : t.inbox.fetched.replace('{n}', releve)}</Flash>
+      )}
       {cfg && data.token ? (
         <AddressCard
-          address={inboundAddress(data.token, cfg.domain)}
+          address={addressFor(cfg, data.token)}
           labels={{ title: t.inbox.address, hint: t.inbox.addressHint, copy: t.inbox.copy, copied: t.inbox.copied }}
         />
       ) : (
@@ -32,7 +40,14 @@ export default async function InboundPage() {
       )}
 
       <section className="stack">
-        <h2>{t.inbox.toProcess}</h2>
+        <div className="page-head">
+          <h2>{t.inbox.toProcess}</h2>
+          {mailbox && (
+            <form action={fetchMailboxAction}>
+              <button className="btn small" type="submit">{t.inbox.fetchNow}</button>
+            </form>
+          )}
+        </div>
         {data.pending.length === 0 ? (
           <p className="faint">{t.inbox.empty}</p>
         ) : (

@@ -1,5 +1,6 @@
+import { simpleParser } from 'mailparser';
 import { describe, expect, it } from 'vitest';
-import { cleanSubject, emailAddress, forwardedOriginal, htmlToText, inboundAddress, inboundTokens, MAX_ITEMS, MAX_TEXT, originOf, parseBrevoInbound } from './inbound';
+import { addressFor, cleanSubject, emailAddress, forwardedOriginal, fromParsedMail, htmlToText, inboundAddress, inboundTokens, MAX_ITEMS, MAX_TEXT, originOf, parseBrevoInbound, type ReceptionScheme, tokensFor } from './inbound';
 
 const TOKEN = '0123456789abcdef0123';
 const DOMAIN = 'reception.exemple.be';
@@ -101,5 +102,68 @@ describe('email transféré à la main', () => {
 describe('HTML en texte', () => {
   it('décode une seule fois les entités', () => {
     expect(htmlToText('<b>a &amp;lt; b</b> &#233;t&#xE9;')).toBe('a &lt; b été');
+  });
+});
+
+describe('boîte relevée par IMAP : adresse « boîte+jeton »', () => {
+  const gmail: ReceptionScheme = { kind: 'plus', mailbox: 'Sitot.Demandes@gmail.com' };
+  const own: ReceptionScheme = { kind: 'plus', mailbox: 'demandes@sitot.be' };
+
+  it('adresse du compte', () => {
+    expect(addressFor(gmail, TOKEN)).toBe(`sitot.demandes+${TOKEN}@gmail.com`);
+    expect(addressFor(own, TOKEN)).toBe(`demandes+${TOKEN}@sitot.be`);
+  });
+
+  it('retrouve le jeton, y compris quand Gmail ôte les points ; rien d’autre', () => {
+    expect(tokensFor(gmail, [`sitotdemandes+${TOKEN}@gmail.com`])).toEqual([TOKEN]);
+    expect(tokensFor(gmail, [`SITOT.DEMANDES+${TOKEN.toUpperCase()}@GMAIL.COM`.toLowerCase()])).toEqual([TOKEN]);
+    expect(tokensFor(own, [`demandes+${TOKEN}@sitot.be`, `de.mandes+${TOKEN}@sitot.be`, `demandes@sitot.be`, `autre+${TOKEN}@sitot.be`, `demandes+${TOKEN}@autre.be`])).toEqual([TOKEN]);
+    expect(tokensFor(own, [`demandes+court@sitot.be`])).toEqual([]);
+  });
+});
+
+describe('email relevé (format brut, lu par mailparser)', () => {
+  const raw = (lines: string[]) => Buffer.from(lines.join('\r\n'));
+
+  it('règle de transfert automatique : le jeton est dans Delivered-To, l’expéditeur d’origine dans From', async () => {
+    const mail = await simpleParser(raw([
+      `Delivered-To: sitot.demandes+${TOKEN}@gmail.com`,
+      'From: Bureau SAV <sav@fabricant.example>',
+      'To: technicien@exemple.be',
+      'Subject: Ticket 45812 - fuite',
+      'Message-ID: <auto-1@fabricant.example>',
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      'Bonjour, merci d’intervenir.',
+    ]));
+    const e = fromParsedMail(mail);
+    expect(e).toMatchObject({ messageId: '<auto-1@fabricant.example>', from: 'sav@fabricant.example', subject: 'Ticket 45812 - fuite', text: 'Bonjour, merci d’intervenir.' });
+    expect(tokensFor({ kind: 'plus', mailbox: 'sitot.demandes@gmail.com' }, e.recipients)).toEqual([TOKEN]);
+  });
+
+  it('email en HTML seulement, avec pièce jointe listée', async () => {
+    const mail = await simpleParser(raw([
+      `To: demandes+${TOKEN}@sitot.be`,
+      'From: tech@exemple.be',
+      'Subject: TR: Panne',
+      'MIME-Version: 1.0',
+      'Content-Type: multipart/mixed; boundary="b"',
+      '',
+      '--b',
+      'Content-Type: text/html; charset=utf-8',
+      '',
+      '<p>Début du message réexpédié :</p><p>De: Client &lt;c@exemple.be&gt;<br>Objet: Panne chaudière</p>',
+      '--b',
+      'Content-Type: image/jpeg; name="photo.jpg"',
+      'Content-Disposition: attachment; filename="photo.jpg"',
+      'Content-Transfer-Encoding: base64',
+      '',
+      '/9j/4AAQSkZJRg==',
+      '--b--',
+    ]));
+    const e = fromParsedMail(mail);
+    expect(e.attachments).toEqual([{ name: 'photo.jpg', type: 'image/jpeg', size: expect.any(Number) }]);
+    expect(originOf(e)).toEqual({ from: 'c@exemple.be', subject: 'Panne chaudière' });
+    expect(tokensFor({ kind: 'plus', mailbox: 'demandes@sitot.be' }, e.recipients)).toEqual([TOKEN]);
   });
 });

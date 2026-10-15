@@ -265,6 +265,9 @@ const fr = {
     ignore: 'Ignorer cet email',
     done: 'Cet email a déjà été traité.',
     paste: 'Coller un email à la main',
+    fetchNow: 'Relever maintenant',
+    fetched: 'Boîte relevée : {n} nouvel(s) email(s).',
+    fetchError: 'La boîte mail ne répond pas ou refuse la connexion : vérifiez IMAP_USER et IMAP_PASSWORD (npm run config:check).',
   },
   interventions: {
     title: 'Interventions',

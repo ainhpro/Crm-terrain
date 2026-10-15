@@ -3,11 +3,13 @@ import { markActionDone } from '@/server/actions/crm';
 import { isCommercial, isTechnician, requireCtx } from '@/server/context';
 import { loadPortfolio } from '@/server/crm';
 import { withUser } from '@/server/db';
+import { scheduleMailboxFetch } from '@/server/imap';
 import { loadTechDay } from '@/server/interventions';
 
 export default async function TodayPage() {
   const ctx = await requireCtx();
   const { t, locale } = ctx;
+  if (isTechnician(ctx)) scheduleMailboxFetch();
   const [portfolio, tech] = await withUser(ctx.userId, (q) =>
     Promise.all([isCommercial(ctx) ? loadPortfolio(q, ctx.today) : null, isTechnician(ctx) ? loadTechDay(q, ctx) : null]),
   );

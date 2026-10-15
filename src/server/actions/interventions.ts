@@ -12,6 +12,7 @@ import { aiEnabled } from '../ai/claude';
 import { parseRequestWithAi } from '../ai/request';
 import { requireCtx } from '../context';
 import { pgCode, type Q, withService, withUser } from '../db';
+import { fetchMailboxNow } from '../imap';
 import { loadVisit, matchCasesByTickets } from '../interventions';
 import { scheduleOutbox } from '../outbox-run';
 import { renderReportPdf, SIGNATURE_NOT_REQUIRED } from '../pdf';
@@ -560,6 +561,19 @@ export async function attachEmail(formData: FormData) {
     if (items.length) await receiveNeeds(q, ctx.orgId, caseId, items, 'email');
   });
   back(`/interventions/${caseId}`);
+}
+
+/** Bouton « Relever maintenant » : relève la boîte de réception (tous les comptes, chacun par son jeton). */
+export async function fetchMailboxAction() {
+  await requireCtx();
+  let extra = '?releve=erreur';
+  try {
+    const r = await fetchMailboxNow();
+    if (r) extra = `?releve=${r.received}`;
+  } catch (e) {
+    console.error('relève de la boîte : échec', (e as Error).message);
+  }
+  back('/interventions/emails', extra);
 }
 
 /** Email reçu sans suite : il quitte les demandes à traiter (il reste dans la base, rien n'est supprimé). */

@@ -265,6 +265,9 @@ const nl: Messages = {
     ignore: 'Deze e-mail negeren',
     done: 'Deze e-mail is al behandeld.',
     paste: 'Een e-mail handmatig plakken',
+    fetchNow: 'Nu ophalen',
+    fetched: 'Mailbox opgehaald: {n} nieuwe e-mail(s).',
+    fetchError: 'De mailbox antwoordt niet of weigert de verbinding: controleer IMAP_USER en IMAP_PASSWORD (npm run config:check).',
   },
   interventions: {
     title: 'Interventies',

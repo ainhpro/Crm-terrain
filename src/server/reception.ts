@@ -1,6 +1,6 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
-import { inboundTokens, originOf, parseBrevoInbound } from '@/modules/interventions/inbound';
+import { type InboundEmail, originOf, parseBrevoInbound, type ReceptionScheme, tokensFor } from '@/modules/interventions/inbound';
 import { extractTicketNumbers, normalizeTicket } from '@/modules/interventions/references';
 import { withService } from './db';
 
@@ -10,19 +10,23 @@ export interface ReceptionResult {
   ignored: number;
 }
 
+/** Appel du service de réception Brevo (adresses « <jeton>@<domaine> »). */
+export function receiveInbound(payload: unknown, domain: string): Promise<ReceptionResult> {
+  return storeInbound(parseBrevoInbound(payload), { kind: 'domain', domain });
+}
+
 /**
- * Traitement nommé « réception d'emails » (règle 2 : sans RLS, le contrôle est fait ici).
- * Le compte est celui de l'adresse de réception, jamais celui du ticket ou de l'expéditeur ; chaque
- * requête filtre sur ce compte. L'email est rangé « à traiter » et ne déclenche rien d'autre (cahier § 6 ter).
- * Un même email reçu deux fois (nouvel essai du service) n'est gardé qu'une fois.
+ * Traitement nommé « réception d'emails » (règle 2 : sans RLS, le contrôle est fait ici), commun à Brevo
+ * et à la relève IMAP. Le compte est celui du jeton de l'adresse de réception, jamais celui du ticket ou de
+ * l'expéditeur ; chaque requête filtre sur ce compte. L'email est rangé « à traiter » et ne déclenche rien
+ * d'autre (cahier § 6 ter). Un même email reçu deux fois n'est gardé qu'une fois.
  */
-export async function receiveInbound(payload: unknown, domain: string): Promise<ReceptionResult> {
-  const emails = parseBrevoInbound(payload);
+export async function storeInbound(emails: InboundEmail[], scheme: ReceptionScheme): Promise<ReceptionResult> {
   const result: ReceptionResult = { received: 0, duplicates: 0, ignored: 0 };
   if (!emails.length) return result;
   await withService(async (q) => {
     for (const email of emails) {
-      const tokens = inboundTokens(email.recipients, domain);
+      const tokens = tokensFor(scheme, email.recipients);
       const orgs = tokens.length ? (await q<{ id: string }>(`select id from organizations where inbound_token = any($1::text[])`, [tokens])).rows : [];
       if (!orgs.length) {
         result.ignored++;

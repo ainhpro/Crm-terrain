@@ -145,6 +145,27 @@ Pour qu'un nouveau client technicien ne voie que la partie technicien (intervent
 
 Les comptes créés ensuite n'ont que les interventions : l'écran de bienvenue ne demande plus le métier, et Réglages ne propose plus de profil commercial. Les comptes existants, dont le vôtre, gardent tout. `npm run config:check` affiche la formule en vigueur. Pour revenir en arrière : `FORMULE=complete`, puis la même commande.
 
+## 8 ter. Recevoir les emails transférés (sans attendre la mise en ligne)
+
+L'application relève elle-même une boîte mail dédiée. Chaque compte y a sa propre adresse, `<boîte>+<jeton>@…`, affichée dans Interventions › Emails reçus. Le technicien y transfère ses emails de demande, ou crée une règle de transfert automatique dans sa messagerie.
+
+1. Créez une adresse Gmail réservée à cet usage, par exemple `sitot.demandes@gmail.com`.
+2. Dans ce compte Google : **Sécurité › Validation en deux étapes** : activez-la.
+3. Toujours dans **Sécurité**, cherchez **Mots de passe des applications** : créez-en un nommé « Sitôt » et copiez les 16 lettres.
+4. Ajoutez dans `.env.local`, puis enregistrez :
+   ```
+   IMAP_HOST=imap.gmail.com
+   IMAP_USER=sitot.demandes@gmail.com
+   IMAP_PASSWORD=les-16-lettres
+   ```
+5. `npm run config:check` doit afficher « Boîte … relevée par IMAP ». Redémarrez l'application (`Ctrl + C`, puis `npm run dev`).
+6. Transférez un email à l'adresse affichée dans Emails reçus, puis appuyez sur **Relever maintenant**. La relève se fait aussi toute seule, au plus une fois par minute, quand un technicien ouvre l'accueil ou ses interventions.
+
+Bon à savoir :
+- Pour une règle de transfert automatique, Gmail envoie d'abord un code de confirmation à l'adresse de réception : il arrive dans « Demandes reçues à traiter ».
+- Les emails relevés restent dans la boîte, marqués comme lus. Rien n'est supprimé.
+- Gmail est un service de Google. Pour la vente, une boîte hébergée en Europe sur le domaine sitot.be fera la même chose : tout fournisseur IMAP qui accepte les adresses « + » convient.
+
 ## 9. Travailler avec Claude Code sur ce PC
 
 Dans VS Code, ouvrez Claude Code et commencez par exemple ainsi :
@@ -164,6 +185,7 @@ Claude Code suit les règles du projet écrites dans `CLAUDE.md` : une branche p
 | « Mot de passe de la base refusé » | `npm run config:check` dit ce qui cloche dans `DATABASE_URL` : crochets `[ ]` restés autour du mot de passe, adresse d'un autre projet, caractère spécial. Si l'adresse a la bonne forme : Supabase › Database › Settings › « Reset database password », avec un mot de passe en lettres et chiffres seulement |
 | « Connexion refusée par la base » | Après plusieurs mots de passe refusés, Supabase bloque votre adresse internet environ 30 minutes. Corrigez d'abord le mot de passe, puis attendez, ou débloquez dans Supabase › Database › Settings › « Network bans » |
 | « ÉCHEC Auth : sur l'offre gratuite… » avec `supabase:setup` | Le SMTP Brevo manque dans `.env.local` : voir l'étape 4 bis, puis relancez `npm run supabase:setup -- --apply` |
+| « La boîte refuse le mot de passe » (config:check) | Gmail exige un **mot de passe d'application**, pas le mot de passe du compte : voir l'étape 8 ter |
 | « Trop de demandes » à la connexion | Supabase limite le nombre d'emails de connexion par heure : attendez quelques minutes |
 | Aucun email de connexion reçu | Regardez dans les indésirables, puis dans Brevo › Transactionnel › Journaux : l'email est-il parti ? L'adresse d'expédition doit être validée dans Brevo |
 | « Proposition préparée par des règles simples » alors que la clé est remplie | `npm run config:check` vérifie la clé Anthropic et le crédit du compte |

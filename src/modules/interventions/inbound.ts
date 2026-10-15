@@ -103,21 +103,85 @@ export function parseBrevoInbound(payload: unknown): InboundEmail[] {
   });
 }
 
+/**
+ * Forme des adresses de réception :
+ * - « domain » : un domaine de réception à soi (MX vers Brevo), « <jeton>@<domaine> » ;
+ * - « plus » : une boîte existante relevée par IMAP, « <boîte>+<jeton>@<domaine de la boîte> ».
+ * Dans les deux cas, seul le jeton désigne le compte.
+ */
+export type ReceptionScheme = { kind: 'domain'; domain: string } | { kind: 'plus'; mailbox: string };
+
+const GMAIL = new Set(['gmail.com', 'googlemail.com']);
+/** Partie locale comparable : minuscules ; Gmail ignore les points. */
+const canonicalLocal = (local: string, domain: string) => (GMAIL.has(domain) ? local.toLowerCase().replace(/\./g, '') : local.toLowerCase());
+const splitAddress = (a: string): [string, string] => {
+  const at = a.lastIndexOf('@');
+  return at > 0 ? [a.slice(0, at), a.slice(at + 1).toLowerCase()] : ['', ''];
+};
+
 /** Adresse de réception d'un compte. */
-export function inboundAddress(token: string, domain: string): string {
-  return `${token}@${domain.trim().toLowerCase()}`;
+export function addressFor(scheme: ReceptionScheme, token: string): string {
+  if (scheme.kind === 'domain') return `${token}@${scheme.domain.trim().toLowerCase()}`;
+  const [local, domain] = splitAddress(scheme.mailbox.trim());
+  return `${local.toLowerCase()}+${token}@${domain}`;
 }
 
-/** Jetons des adresses de réception (« <jeton>@<domaine> ») parmi les destinataires. */
-export function inboundTokens(recipients: readonly string[], domain: string): string[] {
-  const d = domain.trim().toLowerCase();
+/** Jetons des adresses de réception parmi les destinataires d'un email. */
+export function tokensFor(scheme: ReceptionScheme, recipients: readonly string[]): string[] {
+  const [boxLocal, boxDomain] = scheme.kind === 'plus' ? splitAddress(scheme.mailbox.trim()) : ['', ''];
+  const wanted = scheme.kind === 'domain' ? scheme.domain.trim().toLowerCase() : boxDomain;
   return unique(
     recipients.flatMap((r) => {
-      const at = r.lastIndexOf('@');
-      const local = r.slice(0, at);
-      return at > 0 && r.slice(at + 1) === d && TOKEN.test(local) ? [local] : [];
+      const [local, domain] = splitAddress(r);
+      if (!local || domain !== wanted) return [];
+      if (scheme.kind === 'domain') return TOKEN.test(local) ? [local] : [];
+      const plus = local.lastIndexOf('+');
+      const token = local.slice(plus + 1).toLowerCase();
+      return plus > 0 && TOKEN.test(token) && canonicalLocal(local.slice(0, plus), domain) === canonicalLocal(boxLocal, boxDomain) ? [token] : [];
     }),
   );
+}
+
+export const inboundAddress = (token: string, domain: string) => addressFor({ kind: 'domain', domain }, token);
+export const inboundTokens = (recipients: readonly string[], domain: string) => tokensFor({ kind: 'domain', domain }, recipients);
+
+/** Ce dont on a besoin d'un email lu par mailparser (forme minimale, sans dépendre de la bibliothèque). */
+export interface ParsedMailLike {
+  messageId?: string;
+  subject?: string;
+  text?: string;
+  html?: string | false;
+  from?: { value: { address?: string }[] };
+  to?: { value: { address?: string }[] } | { value: { address?: string }[] }[];
+  cc?: { value: { address?: string }[] } | { value: { address?: string }[] }[];
+  headers: Map<string, unknown>;
+  attachments: { filename?: string; contentType?: string; size?: number }[];
+}
+
+const mailboxes = (v: ParsedMailLike['to']): string[] =>
+  (Array.isArray(v) ? v : v ? [v] : []).flatMap((g) => g.value.map((m) => emailAddress(m.address ?? null)).filter((a): a is string => a !== null));
+
+/**
+ * Email relevé dans une boîte (IMAP), au même format que ceux de Brevo. Destinataires réels d'abord :
+ * Delivered-To, X-Original-To, X-Forwarded-To (règle de transfert automatique), puis To et Cc.
+ */
+export function fromParsedMail(mail: ParsedMailLike): InboundEmail {
+  const envelope = ['delivered-to', 'x-original-to', 'x-forwarded-to', 'envelope-to'].flatMap((h) => {
+    const v = mail.headers.get(h);
+    return (Array.isArray(v) ? v : v == null ? [] : [v]).map((x) => emailAddress(typeof x === 'string' ? x : (x as { text?: unknown })?.text ?? null));
+  }).filter((a): a is string => a !== null);
+  const text = (mail.text?.trim() || (mail.html ? htmlToText(mail.html) : '')).replace(/\r\n?/g, '\n').slice(0, MAX_TEXT);
+  return {
+    messageId: mail.messageId?.trim().slice(0, 500) || null,
+    from: emailAddress(mail.from?.value[0]?.address ?? null),
+    recipients: unique([...envelope, ...mailboxes(mail.to), ...mailboxes(mail.cc)]),
+    subject: (mail.subject ?? '').trim().slice(0, MAX_SUBJECT),
+    text,
+    attachments: mail.attachments
+      .filter((a) => a.filename)
+      .slice(0, 50)
+      .map((a) => ({ name: a.filename!.slice(0, 200), type: (a.contentType ?? '').slice(0, 100), size: a.size ?? 0 })),
+  };
 }
 
 // Débuts d'un email transféré : Gmail, Apple Mail, Outlook, en anglais, français, néerlandais et allemand.

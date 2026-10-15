@@ -5,6 +5,8 @@
  * - « dev » : email seul, sur un poste de développement uniquement (jamais en production ni sur Vercel).
  */
 
+import type { ReceptionScheme } from '@/modules/interventions/inbound';
+
 export type AuthMode = 'supabase' | 'dev' | 'none';
 export type StorageMode = 'supabase' | 'local';
 
@@ -71,4 +73,30 @@ export function inboundConfig(env: Env = process.env): { domain: string; secret:
   if (!domain || !secret || secret.length < 24) return null;
   if (!/^(?=.{4,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(domain)) return null;
   return { domain, secret };
+}
+
+/**
+ * Relève d'une boîte mail par IMAP (réception sans domaine ni mise en ligne) : la boîte IMAP_USER reçoit
+ * les emails transférés à « <boîte>+<jeton>@<domaine> ». Hors poste local, connexion chiffrée (port 993)
+ * obligatoire. Gmail : mot de passe d'application (les espaces affichés par Google sont retirés).
+ */
+export function imapConfig(env: Env = process.env): { host: string; port: number; user: string; password: string } | null {
+  const host = env.IMAP_HOST?.trim().toLowerCase();
+  const user = env.IMAP_USER?.trim().toLowerCase();
+  let password = env.IMAP_PASSWORD ?? '';
+  if (!host || !user || !password) return null;
+  if (!/^[^\s@+]+@[^\s@]+\.[^\s@]+$/.test(user)) return null;
+  const port = Number(env.IMAP_PORT?.trim() || 993);
+  const local = ['localhost', '127.0.0.1', '::1'].includes(host);
+  if (!Number.isInteger(port) || (!local && port !== 993)) return null;
+  if (host === 'imap.gmail.com') password = password.replace(/\s+/g, '');
+  return { host, port, user, password };
+}
+
+/** Forme des adresses de réception affichées : domaine à soi (Brevo) si configuré, sinon boîte IMAP. */
+export function receptionScheme(env: Env = process.env): ReceptionScheme | null {
+  const inbound = inboundConfig(env);
+  if (inbound) return { kind: 'domain', domain: inbound.domain };
+  const imap = imapConfig(env);
+  return imap ? { kind: 'plus', mailbox: imap.user } : null;
 }
