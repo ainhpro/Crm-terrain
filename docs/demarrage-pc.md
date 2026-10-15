@@ -136,6 +136,15 @@ Gardez ce tableau sous la main et notez ce qui coince : un mot pas clair, un bou
 
 Sur PC, la dictée marche dans Chrome ou Edge avec le micro. Le vrai test au téléphone viendra avec la mise en ligne sur Vercel (adresse https), qui est la prochaine étape.
 
+## 8 bis. Vendre la formule technicien
+
+Pour qu'un nouveau client technicien ne voie que la partie technicien (interventions, photos, heures, pièces, bons d'intervention), sans rien du CRM :
+
+1. Ajoutez `FORMULE=technicien` dans `.env.local`, puis enregistrez.
+2. Lancez `npm run supabase:setup -- --apply`.
+
+Les comptes créés ensuite n'ont que les interventions : l'écran de bienvenue ne demande plus le métier, et Réglages ne propose plus de profil commercial. Les comptes existants, dont le vôtre, gardent tout. `npm run config:check` affiche la formule en vigueur. Pour revenir en arrière : `FORMULE=complete`, puis la même commande.
+
 ## 9. Travailler avec Claude Code sur ce PC
 
 Dans VS Code, ouvrez Claude Code et commencez par exemple ainsi :

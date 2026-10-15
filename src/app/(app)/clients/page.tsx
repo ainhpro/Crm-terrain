@@ -1,12 +1,12 @@
 import { Flash, Icon } from '@/components';
-import { requireCtx } from '@/server/context';
+import { requireModule } from '@/server/context';
 import { loadPortfolio } from '@/server/crm';
 import { withUser } from '@/server/db';
 
 const TAG: Record<string, string> = { finished: 'ok', late: 'bad', in_progress: 'accent', not_started: '', closed: '' };
 
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; groupe?: string; filtre?: string; importes?: string }> }) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const { t } = ctx;
   const sp = await searchParams;
   const p = await withUser(ctx.userId, (q) => loadPortfolio(q, ctx.today));

@@ -7,7 +7,7 @@ import { buildImport, type CrmSource, type ExistingClient, MAX_COLUMNS, type Map
 import { aiEnabled } from '../ai/claude';
 import { structureReportWithAi } from '../ai/report';
 import { loadClient } from '../crm';
-import { requireCtx } from '../context';
+import { requireModule } from '../context';
 import { pgCode, withUser } from '../db';
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
@@ -22,7 +22,7 @@ async function findOrCreateGroup(q: Parameters<Parameters<typeof withUser>[1]>[0
 }
 
 export async function createClient(formData: FormData) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const name = str(formData, 'name');
   if (!name) redirect('/clients/nouveau?erreur=1');
   const category = opt(formData, 'category');
@@ -53,7 +53,7 @@ export async function createClient(formData: FormData) {
 }
 
 export async function createDeal(formData: FormData) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const clientId = str(formData, 'clientId');
   const pipelineId = str(formData, 'pipelineId');
   const name = str(formData, 'name');
@@ -69,7 +69,7 @@ export async function createDeal(formData: FormData) {
 }
 
 export async function closeDeal(formData: FormData) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const clientId = str(formData, 'clientId');
   const status = str(formData, 'status');
   if (!(DEAL_STATUSES as readonly string[]).includes(status)) redirect(`/clients/${clientId}?erreur=1`);
@@ -81,7 +81,7 @@ export async function closeDeal(formData: FormData) {
 }
 
 export async function addAction(formData: FormData) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const clientId = str(formData, 'clientId');
   // « dealId:stepId » ou vide (action libre).
   const [dealId, stepId] = (str(formData, 'target') || ':').split(':');
@@ -104,7 +104,7 @@ export async function addAction(formData: FormData) {
 }
 
 export async function markActionDone(formData: FormData) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const back = str(formData, 'back') || '/';
   await withUser(ctx.userId, (q) => q(`update actions set status = 'done' where id = $1`, [str(formData, 'actionId')]));
   revalidatePath(back);
@@ -127,7 +127,7 @@ export interface ImportPreview {
 
 /** Lit un fichier Excel ou CSV et propose la correspondance des colonnes. Rien n'est enregistré. */
 export async function readImportFile(_: ImportPreview | null, formData: FormData): Promise<ImportPreview> {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const file = formData.get('file');
   const empty: ImportPreview = { headers: [], rows: [], mapping: [], existing: [] };
   if (!(file instanceof File) || file.size === 0) return { ...empty, error: 'unreadable' };
@@ -176,7 +176,7 @@ function parseMapping(raw: string, width: number): Mapping {
 
 /** Importe les lignes valides en une seule transaction ; renvoie vers la liste avec le nombre importé. */
 export async function runImport(formData: FormData) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const rows = JSON.parse(String(formData.get('rows') ?? '[]')) as string[][];
   const mapping = parseMapping(String(formData.get('mapping') ?? '[]'), Math.max(0, ...rows.map((r) => r.length)));
   let imported = 0;
@@ -237,7 +237,7 @@ export interface ReportProposal {
 const PROGRESS_STATUSES = new Set<ActionStatus>(['todo', 'appointment_to_set', 'appointment_set', 'in_progress', 'blocked']);
 
 export async function prepareReport(_: ReportProposal | null, formData: FormData): Promise<ReportProposal | null> {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const text = str(formData, 'text');
   if (!text) return null;
   const { structureReport } = await import('@/modules/crm/report/structure');
@@ -281,7 +281,7 @@ export async function prepareReport(_: ReportProposal | null, formData: FormData
 
 /** Applique ce que l'utilisateur a coché, en une transaction. */
 export async function applyReport(formData: FormData) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const clientId = str(formData, 'clientId');
   const text = str(formData, 'text');
   await withUser(ctx.userId, async (q) => {

@@ -3,15 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { pipelineCodeFromName, stepCodeFromLabel } from '@/modules/crm/templates/standard';
+import { profilesFor } from '@/modules/crm/formule';
 import { defaultOptions, type TypeKind } from '@/modules/interventions/options';
-import { requireCtx } from '../context';
+import { requireCtx, requireModule } from '../context';
 import { pgCode, withUser } from '../db';
 import { sessionUserId } from '../session';
 import { saveFile } from '../storage';
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 const opt = (f: FormData, k: string) => str(f, k) || null;
-const PROFILES = ['commercial', 'technician', 'both'];
 const KINDS: TypeKind[] = ['sav', 'measure', 'showroom', 'custom'];
 
 function done(extra = ''): never {
@@ -24,7 +24,8 @@ export async function saveMemberSettings(formData: FormData) {
   const ctx = await requireCtx();
   const userId = str(formData, 'userId') || ctx.userId;
   const profile = str(formData, 'profile');
-  if (!PROFILES.includes(profile)) done('?erreur=1');
+  // Seulement les profils que le compte permet (formule technicien : technicien uniquement).
+  if (!(profilesFor(ctx.modules) as string[]).includes(profile)) done('?erreur=1');
   const typeIds = formData.getAll('typeId').map(String);
   const options = {
     parts: formData.get('optParts') === 'on',
@@ -153,7 +154,7 @@ function stepError(e: unknown): never {
 }
 
 async function ownerCtx() {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   if (ctx.role !== 'owner') done('?erreur=owner#etapes');
   return ctx;
 }

@@ -92,6 +92,11 @@ else {
     const missing = files.filter((f) => !applied.has(f.slice(0, 14)));
     if (missing.length) todo(`${missing.length} migration(s) à appliquer sur ${files.length}`, local ? 'npm run db:migrate' : 'npm run supabase:migrate -- --apply');
     else ok(`Schéma à jour (${files.length} migrations)`);
+    const formule = await client.query('select public.deployment_formule() as f').then((r) => r.rows[0].f, () => null);
+    if (formule) {
+      info(`Formule des nouveaux comptes : ${formule === 'technicien' ? 'technicien (interventions seulement)' : 'complète (CRM et interventions)'}`);
+      if (env('FORMULE') && env('FORMULE') !== formule) todo(`FORMULE=${env('FORMULE')} dans .env.local, mais la base dit « ${formule} »`, 'npm run supabase:setup -- --apply');
+    }
   } catch (e) {
     const m = String(e.message || e.code || 'erreur réseau');
     const where = `${u.hostname}, port ${u.port || 5432}`;

@@ -24,7 +24,7 @@ Tous les modules partagent le même fichier clients (organisations, clients, gro
 
 Avant de coder le module interventions, lire le § 6 ter du cahier des charges (dossier et passages, versions figées, envois sans doublon, hors réseau). États des dossiers SAV : ils peuvent être stockés (la règle « jamais stocké » ne concerne que le pipeline commercial).
 
-Ne rien construire des modules prévus sans demande explicite. Chaque module s'active par compte (`organizations.modules actifs`).
+Ne rien construire des modules prévus sans demande explicite. Chaque module s'active par compte (`organizations.modules actifs`), fixé à la création par la **formule de l'installation** (`FORMULE` dans `.env.local`, enregistrée en base par `npm run supabase:setup -- --apply`) : `complete` (CRM et interventions, profil au choix) ou `technicien` (interventions seulement : offre vendue aux techniciens SAV, rien du CRM visible ni utilisable). Pages et actions d'un module passent par `requireModule()` (`src/server/context.ts`).
 
 **Hors périmètre définitif** : facturation, comptabilité, gestion de stock. L'outil s'arrête à l'offre et au bon d'intervention ; la facture se fait dans l'outil de facturation existant, auquel on envoie le bon d'intervention.
 

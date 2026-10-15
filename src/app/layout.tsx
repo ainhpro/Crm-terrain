@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { getServerMessages } from '@/i18n/server';
+import { brand } from '@/server/formule';
 import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getServerMessages();
-  return { title: t.app.name, description: t.app.tagline };
+  const { name, tagline } = await brand(t);
+  return { title: name, description: tagline };
 }
 
 export const viewport: Viewport = {

@@ -18,7 +18,7 @@
 | `npm run supabase:migrate` | Liste les migrations à appliquer | Non |
 | `npm run supabase:migrate -- --apply` | Applique `supabase/migrations/*.sql` dans l'ordre, une transaction par fichier. Le suivi est tenu dans `supabase_migrations.schema_migrations`, la même table que la CLI Supabase. N'applique jamais l'émulation de test ni les données de démonstration. | Oui |
 | `npm run supabase:setup` | Montre la configuration prévue | Non |
-| `npm run supabase:setup -- --apply` | Auth : adresse du site, liens autorisés, emails FR/NL (lien vers `/auth/confirmer` + code, valables 1 h), SMTP Brevo si fourni. Storage : bucket privé, 10 Mo maximum, images et PDF. | Oui |
+| `npm run supabase:setup -- --apply` | Auth : adresse du site, liens autorisés, emails FR/NL (lien vers `/auth/confirmer` + code, valables 1 h), SMTP Brevo si fourni (30 emails par heure). Storage : bucket privé, 10 Mo maximum, images et PDF. Formule des nouveaux comptes si `FORMULE` est renseignée (`complete` ou `technicien`). | Oui |
 | `npm run supabase:check` | Vérifie : migrations appliquées, RLS sur toutes les tables, aucun droit pour `anon`, fonctions appelables = liste attendue, déclencheur de profil, bucket privé, aucun accès public aux fichiers, connexion par email active | Non |
 | `npm run supabase:check -- --isolation` | En plus : crée deux comptes de test, vérifie qu'aucun ne voit ni ne modifie les données de l'autre, puis supprime tout ce qu'il a créé | Temporairement |
 | `npm run test:e2e:connexion` | Parcours de connexion dans un navigateur (lien, code, mauvais code, refus du cookie de développement) | Non |

@@ -1,9 +1,9 @@
 import { BackLink, Flash } from '@/components';
 import { createClient } from '@/server/actions/crm';
-import { requireCtx } from '@/server/context';
+import { requireModule } from '@/server/context';
 
 export default async function NewClientPage({ searchParams }: { searchParams: Promise<{ ok?: string; erreur?: string }> }) {
-  const { t } = await requireCtx();
+  const { t } = await requireModule('crm');
   const sp = await searchParams;
   return (
     <form action={createClient} className="page">

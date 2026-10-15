@@ -55,7 +55,7 @@ describe('droits effectifs (S02)', () => {
              has_function_privilege('anon', p.oid, 'EXECUTE') as anon
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' order by 1`);
     const callable = rows.filter((r) => r.auth).map((r) => r.proname).sort();
-    expect(callable).toEqual(['accept_invitation', 'create_organization', 'delete_organization', 'invite_member', 'is_member', 'is_owner', 'reorder_pipeline_steps']);
+    expect(callable).toEqual(['accept_invitation', 'create_organization', 'delete_organization', 'deployment_formule', 'invite_member', 'is_member', 'is_owner', 'reorder_pipeline_steps']);
     expect(rows.filter((r) => r.anon).map((r) => r.proname)).toEqual([]);
   });
 });

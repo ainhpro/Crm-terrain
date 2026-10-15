@@ -9,6 +9,7 @@ import {
 import { isCommercial, isTechnician, requireCtx } from '@/server/context';
 import { loadPipelines } from '@/server/crm';
 import { withUser } from '@/server/db';
+import { effectiveProfile, isProfile, profilesFor } from '@/modules/crm/formule';
 import { readOptions } from '@/modules/interventions/options';
 import { loadOrgIdentity } from '@/server/interventions';
 
@@ -42,25 +43,31 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     ).rows,
   }));
   const isOwner = ctx.role === 'owner';
+  const profiles = profilesFor(ctx.modules);
   const me = data.members.find((m) => m.user_id === ctx.userId);
   const editable = isOwner ? data.members : me ? [me] : [];
   const errorText = sp.erreur === 'vat' ? t.settings.vatInvalid : sp.erreur === 'owner' ? t.settings.ownerOnly : sp.erreur === 'inUse' ? t.settings.stepsInUse : sp.erreur === 'confirm' ? t.settings.confirmError : sp.erreur === 'lastOwner' ? t.settings.lastOwner : t.common.error;
 
   const MemberForm = ({ m }: { m: Member }) => {
     const o = readOptions(m.options);
-    const profile = m.profile ?? 'commercial';
+    const profile = effectiveProfile(isProfile(m.profile) ? m.profile : 'commercial', ctx.modules);
     return (
       <form action={saveMemberSettings} className="card pad stack">
         <input type="hidden" name="userId" value={m.user_id} />
         {isOwner && data.members.length > 1 && <b>{t.settings.memberSettings} {m.name}</b>}
-        <fieldset>
-          <legend>{t.settings.profile}</legend>
-          <div className="choices">
-            {(['commercial', 'technician', 'both'] as const).map((p) => (
-              <label key={p} className="choice"><input type="radio" name="profile" value={p} defaultChecked={profile === p} /><span>{t.welcome[p]}</span></label>
-            ))}
-          </div>
-        </fieldset>
+        {/* Un seul profil possible (formule technicien) : pas de choix à montrer. */}
+        {profiles.length > 1 ? (
+          <fieldset>
+            <legend>{t.settings.profile}</legend>
+            <div className="choices">
+              {profiles.map((p) => (
+                <label key={p} className="choice"><input type="radio" name="profile" value={p} defaultChecked={profile === p} /><span>{t.welcome[p]}</span></label>
+              ))}
+            </div>
+          </fieldset>
+        ) : (
+          <input type="hidden" name="profile" value={profile} />
+        )}
         {data.types.length > 0 && (
           <fieldset className="stack" style={{ gap: 0 }}>
             <legend>{t.settings.myTypes}</legend>

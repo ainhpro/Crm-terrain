@@ -3,6 +3,9 @@ const fr = {
   app: {
     name: 'CRM terrain',
     tagline: 'Tu sors de chez le client, tu parles une minute, et tout est à jour.',
+    // Formule technicien (FORMULE=technicien) : nom provisoire, en attendant le nom du produit.
+    nameTechnician: 'Interventions terrain',
+    taglineTechnician: 'Tu termines l’intervention, tu parles une minute, et le rapport est prêt.',
   },
   common: {
     offline: 'Hors connexion : ce que vous écrivez reste gardé sur cet appareil. Envoyez quand le réseau revient.',
@@ -70,6 +73,7 @@ const fr = {
     deletedFiles: 'L’entreprise et ses données ont été supprimées ; certains fichiers n’ont pas pu l’être tout de suite et seront supprimés par l’administrateur.',
     title: 'Bienvenue',
     lead: 'Deux questions et vous pouvez commencer.',
+    leadTechnician: 'Le nom de votre entreprise, et vous pouvez commencer.',
     orgName: 'Nom de votre entreprise',
     profileQuestion: 'Quel est votre métier ?',
     commercial: 'Commercial terrain',

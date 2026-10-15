@@ -1,9 +1,9 @@
 import { BackLink } from '@/components';
-import { requireCtx } from '@/server/context';
+import { requireModule } from '@/server/context';
 import { ImportFlow } from './import-flow';
 
 export default async function ImportPage() {
-  const { t } = await requireCtx();
+  const { t } = await requireModule('crm');
   return (
     <main className="page">
       <div className="row">

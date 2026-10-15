@@ -3,14 +3,14 @@ import { BackLink, Flash, formatDate, Icon } from '@/components';
 import { fill } from '@/i18n/messages/fr';
 import { ACTION_STATUSES, DEAL_STATUSES } from '@/modules/crm/pipeline/types';
 import { addAction, closeDeal, createDeal, markActionDone } from '@/server/actions/crm';
-import { requireCtx } from '@/server/context';
+import { requireModule } from '@/server/context';
 import { loadClient } from '@/server/crm';
 import { withUser } from '@/server/db';
 
 const TAG: Record<string, string> = { finished: 'ok', late: 'bad', in_progress: 'accent', not_started: '', closed: '' };
 
 export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; erreur?: string }> }) {
-  const ctx = await requireCtx();
+  const ctx = await requireModule('crm');
   const { t, locale } = ctx;
   const { id } = await params;
   const sp = await searchParams;

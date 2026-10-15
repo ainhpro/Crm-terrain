@@ -5,6 +5,8 @@ const nl: Messages = {
   app: {
     name: 'CRM terrain',
     tagline: 'Na je klantbezoek spreek je een minuut in en is alles bijgewerkt.',
+    nameTechnician: 'Interventies op locatie',
+    taglineTechnician: 'Na je interventie spreek je een minuut in en is het rapport klaar.',
   },
   common: {
     offline: 'Geen verbinding: wat je schrijft blijft bewaard op dit toestel. Verstuur zodra het netwerk terug is.',
@@ -72,6 +74,7 @@ const nl: Messages = {
     deletedFiles: 'Het bedrijf en zijn gegevens zijn verwijderd; sommige bestanden konden niet meteen worden verwijderd en worden door de beheerder gewist.',
     title: 'Welkom',
     lead: 'Twee vragen en je kunt beginnen.',
+    leadTechnician: 'De naam van je bedrijf, en je kunt beginnen.',
     orgName: 'Naam van je bedrijf',
     profileQuestion: 'Wat is je beroep?',
     commercial: 'Vertegenwoordiger',

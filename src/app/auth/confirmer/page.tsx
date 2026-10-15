@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getServerMessages } from '@/i18n/server';
 import { confirmLoginLink } from '@/server/actions/auth';
+import { brand } from '@/server/formule';
 
 /**
  * Lien de l'email de connexion. Ouvrir la page ne consomme rien (les antivirus de messagerie ouvrent
@@ -12,12 +13,13 @@ export const metadata: Metadata = { referrer: 'no-referrer', robots: { index: fa
 export default async function ConfirmPage({ searchParams }: { searchParams: Promise<{ token_hash?: string }> }) {
   const { t } = await getServerMessages();
   const { token_hash: tokenHash = '' } = await searchParams;
+  const { name: productName } = await brand(t);
   return (
     <main className="shell">
       <div className="page" style={{ justifyContent: 'center', maxWidth: 440, margin: '0 auto', width: '100%' }}>
         <div className="brand">
-          <i>C</i>
-          {t.app.name}
+          <i>{productName.slice(0, 1)}</i>
+          {productName}
         </div>
         <h1>{t.auth.confirmTitle}</h1>
         <p className="muted">{t.auth.confirmLead}</p>

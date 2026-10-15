@@ -2,9 +2,11 @@
 //  1. Auth : adresse du site, liens autorisés, emails de connexion FR/NL (lien vers /auth/confirmer + code) ;
 //     SMTP Brevo si ses paramètres sont fournis (le SMTP intégré de Supabase n'écrit qu'à l'équipe du projet).
 //  2. Storage : bucket privé des fichiers (photos, signatures, logos, PDF), taille et types limités.
+//  3. Formule des nouveaux comptes si FORMULE est renseignée : complete (CRM et interventions) ou
+//     technicien (interventions seulement). Les comptes existants ne changent pas.
 //   node scripts/supabase/setup.mjs            montre ce qui serait fait (aucune écriture)
 //   node scripts/supabase/setup.mjs --apply    applique
-import { BUCKET, http, managementHeaders, need, projectRef, serviceHeaders } from './lib.mjs';
+import { BUCKET, connectDb, http, managementHeaders, need, projectRef, serviceHeaders } from './lib.mjs';
 
 const apply = process.argv.includes('--apply');
 const appUrl = need('APP_URL').replace(/\/+$/, '');
@@ -13,6 +15,11 @@ if (!/^https:\/\//.test(appUrl) && !/^http:\/\/localhost(:\d+)?$/.test(appUrl)) 
   process.exit(2);
 }
 const ref = projectRef();
+const formule = process.env.FORMULE?.trim() || null;
+if (formule && !['complete', 'technicien'].includes(formule)) {
+  console.error('FORMULE doit valoir « complete » ou « technicien ».');
+  process.exit(2);
+}
 const supabaseUrl = need('SUPABASE_URL').replace(/\/+$/, '');
 
 const link = `{{ .SiteURL }}/auth/confirmer?token_hash={{ .TokenHash }}`;
@@ -62,6 +69,7 @@ console.log(`Projet ${ref} — site ${appUrl}`);
 console.log(`Auth : adresse du site, liens autorisés ${auth.uri_allow_list}, emails FR/NL (lien + code, 1 h)${smtp ? `, SMTP personnalisé, ${EMAILS_PER_HOUR} emails par heure` : ''}.`);
 if (!smtp) console.log('  SMTP non fourni : sur l’offre gratuite, Supabase refuse de modifier les emails de connexion (docs/demarrage-pc.md, étape 4 bis).');
 console.log(`Storage : bucket « ${BUCKET} » privé, 10 Mo maximum, images et PDF.`);
+console.log(formule ? `Formule des nouveaux comptes : ${formule}.` : 'Formule des nouveaux comptes : inchangée (FORMULE non renseignée).');
 if (!apply) {
   console.log('Rien n’a été modifié. Relancer avec --apply pour appliquer.');
   process.exit(0);
@@ -90,4 +98,17 @@ const r2 = exists.ok
   : await http(`${supabaseUrl}/storage/v1/bucket`, { method: 'POST', headers: serviceHeaders(), body: bucket });
 console.log(r2.ok ? `Bucket « ${BUCKET} » ${exists.ok ? 'mis à jour' : 'créé'} (privé).` : `ÉCHEC Storage (${r2.status}) : ${r2.text.slice(0, 300)}`);
 failed ||= !r2.ok;
+
+if (formule) {
+  const db = await connectDb();
+  try {
+    await db.query(`insert into private.settings (key, value) values ('formule', $1) on conflict (key) do update set value = excluded.value`, [formule]);
+    console.log(`Formule « ${formule} » enregistrée : elle s’applique aux comptes créés à partir de maintenant.`);
+  } catch (e) {
+    console.log(`ÉCHEC formule : ${e.message} (les migrations sont-elles appliquées ? npm run supabase:migrate -- --apply)`);
+    failed = true;
+  } finally {
+    await db.end();
+  }
+}
 process.exit(failed ? 1 : 0);
