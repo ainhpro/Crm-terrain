@@ -159,9 +159,13 @@ if (imapHost || imapUser || imapPass) {
     } catch (e) {
       const said = String(e.responseText ?? '').replace(/https?:\/\/\S+/g, '').trim().slice(0, 120); // réponse du serveur, sans secret
       if (e.authenticationFailed || /auth|credential|password/i.test(String(e.responseText ?? e.message))) {
-        todo(`La boîte ${imapUser} refuse le mot de passe${said ? ` (« ${said} »)` : ''}`, imapHost === 'imap.gmail.com'
-          ? 'Gmail : compte Google › Sécurité › Validation en deux étapes, puis « Mots de passe des applications » ; coller ce mot de passe dans IMAP_PASSWORD'
-          : 'vérifier IMAP_USER et IMAP_PASSWORD');
+        // Gmail : un mot de passe d'application fait 16 lettres minuscules ; seule la forme est examinée, jamais affichée.
+        const appPassword = /^[a-z]{16}$/.test(imapPass.replace(/\s+/g, ''));
+        todo(`La boîte ${imapUser} refuse le mot de passe${said ? ` (« ${said} »)` : ''}`, imapHost !== 'imap.gmail.com'
+          ? 'vérifier IMAP_USER et IMAP_PASSWORD'
+          : appPassword
+            ? `IMAP_PASSWORD a bien la forme d'un mot de passe d'application : vérifier qu'il a été créé en étant connecté à ${imapUser} (pas à un autre compte Google), et qu'il n'a pas été supprimé`
+            : `IMAP_PASSWORD n'est pas un mot de passe d'application (16 lettres) : c'est sans doute le mot de passe du compte. Connecté à ${imapUser} : Sécurité › Validation en deux étapes, puis myaccount.google.com/apppasswords`);
       } else todo(`Boîte injoignable (${e.code ?? String(e.message).slice(0, 80)})`, 'vérifier IMAP_HOST (Gmail : imap.gmail.com) et la connexion internet');
     } finally {
       await client.logout().catch(() => client.close());
