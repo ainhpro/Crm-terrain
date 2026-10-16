@@ -157,8 +157,9 @@ if (imapHost || imapUser || imapPass) {
       const [l, d] = imapUser.split('@');
       info(`Adresses de réception : ${l}+<jeton>@${d}, une par compte (Interventions › Emails reçus)`);
     } catch (e) {
+      const said = String(e.responseText ?? '').replace(/https?:\/\/\S+/g, '').trim().slice(0, 120); // réponse du serveur, sans secret
       if (e.authenticationFailed || /auth|credential|password/i.test(String(e.responseText ?? e.message))) {
-        todo('La boîte refuse le mot de passe', imapHost === 'imap.gmail.com'
+        todo(`La boîte ${imapUser} refuse le mot de passe${said ? ` (« ${said} »)` : ''}`, imapHost === 'imap.gmail.com'
           ? 'Gmail : compte Google › Sécurité › Validation en deux étapes, puis « Mots de passe des applications » ; coller ce mot de passe dans IMAP_PASSWORD'
           : 'vérifier IMAP_USER et IMAP_PASSWORD');
       } else todo(`Boîte injoignable (${e.code ?? String(e.message).slice(0, 80)})`, 'vérifier IMAP_HOST (Gmail : imap.gmail.com) et la connexion internet');
